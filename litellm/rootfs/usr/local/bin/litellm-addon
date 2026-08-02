@@ -1,0 +1,252 @@
+#!/usr/bin/env python3
+"""Translate Home Assistant app options into a LiteLLM proxy process."""
+
+from __future__ import annotations
+
+import json
+import os
+from pathlib import Path
+import secrets
+import sys
+
+import yaml
+
+OPTIONS_PATH = Path(os.environ.get("LITELLM_ADDON_OPTIONS", "/data/options.json"))
+DATA_DIR = Path(os.environ.get("LITELLM_ADDON_DATA", "/data"))
+CONFIG_DIR = Path(os.environ.get("LITELLM_ADDON_CONFIG", "/config"))
+GENERATED_CONFIG = DATA_DIR / "litellm.yaml"
+SALT_KEY_PATH = DATA_DIR / "salt_key"
+GUARDRAIL_DIR = Path("/usr/local/lib/litellm-addon")
+
+
+def model(name: str, upstream: str, api_key_env: str) -> dict:
+    """Create a model entry with the metadata used by the Compose stack."""
+    return {
+        "model_name": name,
+        "litellm_params": {
+            "model": upstream,
+            "api_key": f"os.environ/{api_key_env}",
+        },
+        "model_info": {
+            "supports_function_calling": True,
+            "supports_web_search": True,
+            "supports_vision": False,
+            "cache_creation_input_token_cost": 0,
+            "cache_read_input_token_cost": 0,
+        },
+    }
+
+
+def build_config(options: dict) -> dict:
+    """Build the default LiteLLM configuration from app options."""
+    callbacks = []
+    if options.get("enable_prometheus", True):
+        callbacks.append("prometheus")
+    if options.get("searxng_api_base"):
+        callbacks.append("websearch_interception")
+
+    litellm_settings: dict = {
+        "drop_params": True,
+        "modify_params": True,
+        "set_verbose": options.get("log_level") == "debug",
+        "global_max_parallel_requests": 100,
+        "allowed_fails": 5,
+        "cooldown_time": 600,
+    }
+    if callbacks:
+        litellm_settings["callbacks"] = callbacks
+    if options.get("enable_prometheus", True):
+        litellm_settings.update(
+            {
+                "prometheus_initialize_budget_metrics": True,
+                "prometheus_emit_stream_label": True,
+                "require_auth_for_metrics_endpoint": False,
+            }
+        )
+    if options.get("redis_url"):
+        litellm_settings.update(
+            {
+                "cache": True,
+                "cache_params": {
+                    "type": "redis",
+                    "namespace": "litellm-cache",
+                    "ttl": 600,
+                },
+            }
+        )
+    if options.get("searxng_api_base"):
+        litellm_settings["websearch_interception_params"] = {
+            "search_tool_name": "searxng-search",
+            "enabled_providers": ["openrouter", "anthropic", "openai"],
+        }
+
+    models = [
+        model(
+            "claude-haiku-4-5-20251001",
+            "openrouter/nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+            "OPENROUTER_API_KEY",
+        ),
+        model(
+            "claude-sonnet-4-6",
+            "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
+            "OPENROUTER_API_KEY",
+        ),
+        model(
+            "claude-opus-4-8",
+            "openrouter/nvidia/nemotron-3-ultra-550b-a55b:free",
+            "OPENROUTER_API_KEY",
+        ),
+    ]
+    if options.get("nvidia_api_key"):
+        models.append(
+            model(
+                "nemotron-3-ultra-550b-a55b",
+                "nvidia_nim/nvidia/nemotron-3-ultra-550b-a55b",
+                "NVIDIA_NIM_API_KEY",
+            )
+        )
+
+    general_settings = {
+        "master_key": "os.environ/LITELLM_MASTER_KEY",
+        "store_prompts_in_spend_logs": True,
+        "use_x_forwarded_for": True,
+        "enforce_user_param": False,
+        "fail_closed_budget_enforcement": True,
+        "reject_clientside_metadata_tags": True,
+    }
+    if options.get("database_url"):
+        general_settings.update(
+            {
+                "database_url": "os.environ/DATABASE_URL",
+                "store_model_in_db": True,
+            }
+        )
+    else:
+        general_settings["store_model_in_db"] = False
+
+    config = {
+        "model_list": models,
+        "litellm_settings": litellm_settings,
+        "router_settings": {
+            "fallbacks": [
+                {"claude-opus-4-8": ["claude-sonnet-4-6"]},
+                {"claude-sonnet-4-6": ["claude-haiku-4-5-20251001"]},
+            ]
+        },
+        "general_settings": general_settings,
+    }
+    if options.get("searxng_api_base"):
+        config["search_tools"] = [
+            {
+                "search_tool_name": "searxng-search",
+                "litellm_params": {
+                    "search_provider": "searxng",
+                    "api_base": "os.environ/SEARXNG_API_BASE",
+                },
+            }
+        ]
+    if options.get("enable_file_guardrail", True):
+        config["guardrails"] = [
+            {
+                "guardrail_name": "no-file-input",
+                "litellm_params": {
+                    "guardrail": "no_file_input_guardrail.NoFileInputGuardrail",
+                    "mode": "pre_call",
+                    "default_on": True,
+                },
+            }
+        ]
+    return config
+
+
+def resolve_custom_config(value: str) -> Path:
+    """Resolve a custom path while keeping it inside the mapped config folder."""
+    candidate = (CONFIG_DIR / value).resolve()
+    config_root = CONFIG_DIR.resolve()
+    if candidate != config_root and config_root not in candidate.parents:
+        raise ValueError("custom_config must remain inside the app configuration folder")
+    if not candidate.is_file():
+        raise ValueError(f"custom_config does not exist: {candidate}")
+    return candidate
+
+
+def get_salt_key() -> str:
+    """Create a stable per-installation salt key if one does not exist."""
+    if SALT_KEY_PATH.exists():
+        return SALT_KEY_PATH.read_text(encoding="utf-8").strip()
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    salt_key = f"sk-salt-{secrets.token_hex(32)}"
+    SALT_KEY_PATH.write_text(f"{salt_key}\n", encoding="utf-8")
+    SALT_KEY_PATH.chmod(0o600)
+    return salt_key
+
+
+def load_options() -> dict:
+    """Read options written by the Home Assistant Supervisor."""
+    try:
+        return json.loads(OPTIONS_PATH.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise ValueError(f"unable to read {OPTIONS_PATH}: {error}") from error
+
+
+def configure_environment(options: dict) -> None:
+    """Export secrets without writing them to generated configuration files."""
+    environment = {
+        "LITELLM_MASTER_KEY": options.get("master_key", ""),
+        "OPENROUTER_API_KEY": options.get("openrouter_api_key", ""),
+        "NVIDIA_NIM_API_KEY": options.get("nvidia_api_key", ""),
+        "DATABASE_URL": options.get("database_url", ""),
+        "REDIS_URL": options.get("redis_url", ""),
+        "SEARXNG_API_BASE": options.get("searxng_api_base", ""),
+        "LITELLM_LOG": options.get("log_level", "info").upper(),
+        "LITELLM_SALT_KEY": get_salt_key(),
+    }
+    for name, value in environment.items():
+        if value:
+            os.environ[name] = str(value)
+
+
+def main() -> int:
+    """Generate configuration and replace this process with LiteLLM."""
+    try:
+        options = load_options()
+        master_key = options.get("master_key", "")
+        if not master_key.startswith("sk-"):
+            raise ValueError("master_key must start with 'sk-'")
+        if not options.get("openrouter_api_key"):
+            raise ValueError("openrouter_api_key is required")
+
+        configure_environment(options)
+        custom_config = options.get("custom_config", "").strip()
+        if custom_config:
+            config_path = resolve_custom_config(custom_config)
+            print(f"Using custom LiteLLM configuration: {config_path}", flush=True)
+        else:
+            DATA_DIR.mkdir(parents=True, exist_ok=True)
+            GENERATED_CONFIG.write_text(
+                yaml.safe_dump(build_config(options), sort_keys=False),
+                encoding="utf-8",
+            )
+            config_path = GENERATED_CONFIG
+            print(f"Generated LiteLLM configuration: {config_path}", flush=True)
+
+        python_path = os.environ.get("PYTHONPATH", "")
+        os.environ["PYTHONPATH"] = f"{GUARDRAIL_DIR}:{python_path}".rstrip(":")
+        args = [
+            "litellm",
+            "--config",
+            str(config_path),
+            "--host",
+            "0.0.0.0",
+            "--port",
+            "4000",
+        ]
+        os.execvp(args[0], args)
+    except ValueError as error:
+        print(f"Configuration error: {error}", file=sys.stderr, flush=True)
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
