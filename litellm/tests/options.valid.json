@@ -1,12 +1,4 @@
 {
   "master_key": "sk-test-master-key",
-  "openrouter_api_key": "sk-or-test-key",
-  "nvidia_api_key": "",
-  "database_url": "",
-  "redis_url": "",
-  "searxng_api_base": "",
-  "custom_config": "",
-  "enable_prometheus": true,
-  "enable_file_guardrail": true,
-  "log_level": "info"
+  "openrouter_api_key": "sk-or-test-key"
 }

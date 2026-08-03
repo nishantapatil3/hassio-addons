@@ -27,4 +27,4 @@ build/
 *.cert
 *.p12
 secrets.yaml
-local/
+/local/

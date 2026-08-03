@@ -13,7 +13,6 @@ import yaml
 
 OPTIONS_PATH = Path(os.environ.get("LITELLM_ADDON_OPTIONS", "/data/options.json"))
 DATA_DIR = Path(os.environ.get("LITELLM_ADDON_DATA", "/data"))
-CONFIG_DIR = Path(os.environ.get("LITELLM_ADDON_CONFIG", "/config"))
 GENERATED_CONFIG = DATA_DIR / "litellm.yaml"
 SALT_KEY_PATH = DATA_DIR / "salt_key"
 GUARDRAIL_DIR = Path("/usr/local/lib/litellm-addon")
@@ -37,48 +36,20 @@ def model(name: str, upstream: str, api_key_env: str) -> dict:
     }
 
 
-def build_config(options: dict) -> dict:
-    """Build the default LiteLLM configuration from app options."""
-    callbacks = []
-    if options.get("enable_prometheus", True):
-        callbacks.append("prometheus")
-    if options.get("searxng_api_base"):
-        callbacks.append("websearch_interception")
-
+def build_config() -> dict:
+    """Build the default LiteLLM configuration."""
     litellm_settings: dict = {
         "drop_params": True,
         "modify_params": True,
-        "set_verbose": options.get("log_level") == "debug",
+        "set_verbose": False,
         "global_max_parallel_requests": 100,
         "allowed_fails": 5,
         "cooldown_time": 600,
+        "callbacks": ["prometheus"],
+        "prometheus_initialize_budget_metrics": True,
+        "prometheus_emit_stream_label": True,
+        "require_auth_for_metrics_endpoint": False,
     }
-    if callbacks:
-        litellm_settings["callbacks"] = callbacks
-    if options.get("enable_prometheus", True):
-        litellm_settings.update(
-            {
-                "prometheus_initialize_budget_metrics": True,
-                "prometheus_emit_stream_label": True,
-                "require_auth_for_metrics_endpoint": False,
-            }
-        )
-    if options.get("redis_url"):
-        litellm_settings.update(
-            {
-                "cache": True,
-                "cache_params": {
-                    "type": "redis",
-                    "namespace": "litellm-cache",
-                    "ttl": 600,
-                },
-            }
-        )
-    if options.get("searxng_api_base"):
-        litellm_settings["websearch_interception_params"] = {
-            "search_tool_name": "searxng-search",
-            "enabled_providers": ["openrouter", "anthropic", "openai"],
-        }
 
     models = [
         model(
@@ -97,14 +68,6 @@ def build_config(options: dict) -> dict:
             "OPENROUTER_API_KEY",
         ),
     ]
-    if options.get("nvidia_api_key"):
-        models.append(
-            model(
-                "nemotron-3-ultra-550b-a55b",
-                "nvidia_nim/nvidia/nemotron-3-ultra-550b-a55b",
-                "NVIDIA_NIM_API_KEY",
-            )
-        )
 
     general_settings = {
         "master_key": "os.environ/LITELLM_MASTER_KEY",
@@ -113,18 +76,10 @@ def build_config(options: dict) -> dict:
         "enforce_user_param": False,
         "fail_closed_budget_enforcement": True,
         "reject_clientside_metadata_tags": True,
+        "store_model_in_db": False,
     }
-    if options.get("database_url"):
-        general_settings.update(
-            {
-                "database_url": "os.environ/DATABASE_URL",
-                "store_model_in_db": True,
-            }
-        )
-    else:
-        general_settings["store_model_in_db"] = False
 
-    config = {
+    return {
         "model_list": models,
         "litellm_settings": litellm_settings,
         "router_settings": {
@@ -134,19 +89,7 @@ def build_config(options: dict) -> dict:
             ]
         },
         "general_settings": general_settings,
-    }
-    if options.get("searxng_api_base"):
-        config["search_tools"] = [
-            {
-                "search_tool_name": "searxng-search",
-                "litellm_params": {
-                    "search_provider": "searxng",
-                    "api_base": "os.environ/SEARXNG_API_BASE",
-                },
-            }
-        ]
-    if options.get("enable_file_guardrail", True):
-        config["guardrails"] = [
+        "guardrails": [
             {
                 "guardrail_name": "no-file-input",
                 "litellm_params": {
@@ -155,19 +98,8 @@ def build_config(options: dict) -> dict:
                     "default_on": True,
                 },
             }
-        ]
-    return config
-
-
-def resolve_custom_config(value: str) -> Path:
-    """Resolve a custom path while keeping it inside the mapped config folder."""
-    candidate = (CONFIG_DIR / value).resolve()
-    config_root = CONFIG_DIR.resolve()
-    if candidate != config_root and config_root not in candidate.parents:
-        raise ValueError("custom_config must remain inside the app configuration folder")
-    if not candidate.is_file():
-        raise ValueError(f"custom_config does not exist: {candidate}")
-    return candidate
+        ],
+    }
 
 
 def get_salt_key() -> str:
@@ -194,11 +126,6 @@ def configure_environment(options: dict) -> None:
     environment = {
         "LITELLM_MASTER_KEY": options.get("master_key", ""),
         "OPENROUTER_API_KEY": options.get("openrouter_api_key", ""),
-        "NVIDIA_NIM_API_KEY": options.get("nvidia_api_key", ""),
-        "DATABASE_URL": options.get("database_url", ""),
-        "REDIS_URL": options.get("redis_url", ""),
-        "SEARXNG_API_BASE": options.get("searxng_api_base", ""),
-        "LITELLM_LOG": options.get("log_level", "info").upper(),
         "LITELLM_SALT_KEY": get_salt_key(),
     }
     for name, value in environment.items():
@@ -217,25 +144,19 @@ def main() -> int:
             raise ValueError("openrouter_api_key is required")
 
         configure_environment(options)
-        custom_config = options.get("custom_config", "").strip()
-        if custom_config:
-            config_path = resolve_custom_config(custom_config)
-            print(f"Using custom LiteLLM configuration: {config_path}", flush=True)
-        else:
-            DATA_DIR.mkdir(parents=True, exist_ok=True)
-            GENERATED_CONFIG.write_text(
-                yaml.safe_dump(build_config(options), sort_keys=False),
-                encoding="utf-8",
-            )
-            config_path = GENERATED_CONFIG
-            print(f"Generated LiteLLM configuration: {config_path}", flush=True)
+        DATA_DIR.mkdir(parents=True, exist_ok=True)
+        GENERATED_CONFIG.write_text(
+            yaml.safe_dump(build_config(), sort_keys=False),
+            encoding="utf-8",
+        )
+        print(f"Generated LiteLLM configuration: {GENERATED_CONFIG}", flush=True)
 
         python_path = os.environ.get("PYTHONPATH", "")
         os.environ["PYTHONPATH"] = f"{GUARDRAIL_DIR}:{python_path}".rstrip(":")
         args = [
             "litellm",
             "--config",
-            str(config_path),
+            str(GENERATED_CONFIG),
             "--host",
             "0.0.0.0",
             "--port",

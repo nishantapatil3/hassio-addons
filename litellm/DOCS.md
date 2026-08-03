@@ -34,41 +34,8 @@ For Claude Code, set `ANTHROPIC_BASE_URL` to the API base and
 The default guardrail rejects file and document content blocks before a model
 call. Image content is allowed and routed to the Haiku alias.
 
-## Optional services
-
-The original Compose project runs several neighboring containers. Home
-Assistant manages one container per app, so this package accepts connection
-URLs for external instances instead:
-
-- `database_url`: PostgreSQL URL. Required for the admin UI, virtual keys,
-  budgets, and persistent spend data. Example:
-  `postgresql://user:password@database-host:5432/litellm`.
-- `redis_url`: Redis URL for the ten-minute response cache. Example:
-  `redis://:password@redis-host:6379/0`.
-- `searxng_api_base`: SearXNG base URL for the `searxng-search` tool. Example:
-  `http://searxng-host:8080`.
-- `nvidia_api_key`: enables the direct `nemotron-3-ultra-550b-a55b` NVIDIA NIM
-  route.
-
-Prometheus does not need to run in this container. Point an external
-Prometheus server at `http://HOME_ASSISTANT_IP:4000/metrics/`.
-
-## Custom LiteLLM configuration
-
-To replace the generated model configuration:
-
-1. Map or open the app configuration folder.
-2. Create a file such as `litellm-custom.yaml` there.
-3. Set `custom_config` to `litellm-custom.yaml`.
-4. Restart the app.
-
-The app still exports keys and service URLs from its options as these
-environment variables: `LITELLM_MASTER_KEY`, `LITELLM_SALT_KEY`,
-`OPENROUTER_API_KEY`, `NVIDIA_NIM_API_KEY`, `DATABASE_URL`, `REDIS_URL`, and
-`SEARXNG_API_BASE`.
-
-The salt key is generated once and persisted in the app data directory. Do not
-delete it after storing encrypted values in PostgreSQL.
+Prometheus metrics are exposed at `/metrics/`. Point an external Prometheus
+server at `http://HOME_ASSISTANT_IP:4000/metrics/`.
 
 ## Security
 

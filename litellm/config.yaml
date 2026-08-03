@@ -21,23 +21,7 @@ map:
 options:
   master_key: null
   openrouter_api_key: null
-  nvidia_api_key: ""
-  database_url: ""
-  redis_url: ""
-  searxng_api_base: ""
-  custom_config: ""
-  enable_prometheus: true
-  enable_file_guardrail: true
-  log_level: info
 schema:
   master_key: password
   openrouter_api_key: password
-  nvidia_api_key: password
-  database_url: password
-  redis_url: password
-  searxng_api_base: str
-  custom_config: str
-  enable_prometheus: bool
-  enable_file_guardrail: bool
-  log_level: list(debug|info|warning|error)
 image: ghcr.io/nishantapatil3/litellm

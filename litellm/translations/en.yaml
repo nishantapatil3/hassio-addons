@@ -5,35 +5,6 @@ configuration:
       Secret clients use to authenticate with LiteLLM. It must start with sk-.
   openrouter_api_key:
     name: OpenRouter API key
-    description: API key used by the default Nemotron model routes.
-  nvidia_api_key:
-    name: NVIDIA NIM API key
-    description: >-
-      Optional key that enables the direct NVIDIA Nemotron Ultra model route.
-  database_url:
-    name: PostgreSQL URL
-    description: >-
-      Optional external PostgreSQL connection URL. Enables the admin UI,
-      virtual keys, budgets, and persistent spend data.
-  redis_url:
-    name: Redis URL
-    description: Optional external Redis URL for response caching.
-  searxng_api_base:
-    name: SearXNG API base URL
-    description: Optional SearXNG URL that enables the searxng-search tool.
-  custom_config:
-    name: Custom configuration
-    description: >-
-      Optional path relative to this app's configuration folder. When set,
-      this file replaces the generated LiteLLM configuration.
-  enable_prometheus:
-    name: Enable Prometheus metrics
-    description: Expose LiteLLM metrics at /metrics/.
-  enable_file_guardrail:
-    name: Enable file guardrail
-    description: Block file and document inputs and route images to Haiku.
-  log_level:
-    name: Log level
-    description: LiteLLM log verbosity.
+    description: API key used by the default model routes.
 network:
   4000/tcp: LiteLLM API and admin UI port
