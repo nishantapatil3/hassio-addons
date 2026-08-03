@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.2
+
+- Remove experimental stage tag.
+
 ## 1.0.1
 
 - Simplify configuration to `master_key` and `openrouter_api_key` only.
