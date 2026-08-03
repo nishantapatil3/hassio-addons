@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.3
+
+- Replace legacy `addon_config` map type with `app_config`.
+
 ## 1.0.2
 
 - Remove experimental stage tag.
