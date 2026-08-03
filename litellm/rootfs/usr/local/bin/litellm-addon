@@ -44,6 +44,9 @@ def configure_environment() -> None:
     master_key = options.get("master_key", "").strip()
     if master_key:
         os.environ["LITELLM_MASTER_KEY"] = master_key
+    openrouter_api_key = options.get("openrouter_api_key", "").strip()
+    if openrouter_api_key:
+        os.environ["OPENROUTER_API_KEY"] = openrouter_api_key
 
 
 def main() -> int:

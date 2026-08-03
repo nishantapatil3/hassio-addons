@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.14
+
+- Add `openrouter_api_key` HA UI option — set your OpenRouter API key in the
+  add-on configuration panel without editing litellm.yaml directly.
+- Bundled litellm.yaml model entries use `os.environ/OPENROUTER_API_KEY`.
+
 ## 1.0.13
 
 - Add `master_key` HA UI option — set your LiteLLM master key in the add-on
