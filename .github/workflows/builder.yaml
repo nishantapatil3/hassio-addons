@@ -23,7 +23,7 @@ jobs:
       name: ${{ steps.info.outputs.name }}
       registry_prefix: ${{ steps.normalize.outputs.registry_prefix }}
       url: ${{ steps.info.outputs.url }}
-      version: ${{ steps.info.outputs.version }}
+      version: ${{ steps.normalize.outputs.version }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v7.0.1
@@ -38,9 +38,12 @@ jobs:
         id: normalize
         env:
           IMAGE: ${{ steps.info.outputs.image }}
+          VERSION: ${{ steps.info.outputs.version }}
         run: |
-          echo "image_name=${IMAGE##*/}" >> "$GITHUB_OUTPUT"
-          echo "registry_prefix=${IMAGE%/*}" >> "$GITHUB_OUTPUT"
+          clean="${IMAGE//\"/}"
+          echo "image_name=${clean##*/}" >> "$GITHUB_OUTPUT"
+          echo "registry_prefix=${clean%/*}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION//\"/}" >> "$GITHUB_OUTPUT"
 
       - name: Prepare build matrix
         id: matrix
