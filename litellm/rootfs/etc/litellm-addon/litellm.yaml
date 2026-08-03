@@ -102,9 +102,7 @@ router_settings:
 
 general_settings:
   master_key: os.environ/LITELLM_MASTER_KEY
-  # To enable the admin UI, virtual keys, and spend tracking, uncomment and fill
-  # in your PostgreSQL connection string (requires a PostgreSQL instance — see docs):
-  database_url: postgresql://postgres:homeassistant@192.168.1.10:5432/litellm
+  database_url: postgresql://postgres:homeassistant@db21ed7f-postgres-latest:5432/litellm
   store_model_in_db: true
   store_prompts_in_spend_logs: true
   use_x_forwarded_for: true
