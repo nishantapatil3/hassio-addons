@@ -15,8 +15,6 @@ ports:
 ports_description:
   4000/tcp: LiteLLM API and admin UI
 webui: http://[HOST]:[PORT:4000]/ui
-map:
-  - app_config
 options:
   master_key: ""
   openrouter_api_key: ""
