@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.15
+
+- Remove NVIDIA NIM direct section from bundled litellm.yaml.
+
 ## 1.0.14
 
 - Add `openrouter_api_key` HA UI option — set your OpenRouter API key in the

@@ -4,8 +4,8 @@
 
 model_list:
   # ============================================================
-  # Claude Code models — Claude model names mapped to free NVIDIA
-  # NIM models via OpenRouter. Replace with any supported backend.
+  # Claude Code models — mapped to free models via OpenRouter.
+  # Replace with any supported backend.
   # ============================================================
   - model_name: claude-haiku-4-5-20251001
     litellm_params:
@@ -39,21 +39,6 @@ model_list:
       supports_vision: false
       cache_creation_input_token_cost: 0
       cache_read_input_token_cost: 0
-
-  # ============================================================
-  # NVIDIA NIM direct — uncomment and set your api_key to use
-  # NIM endpoints directly without OpenRouter.
-  # ============================================================
-  # - model_name: nemotron-3-ultra-550b-a55b
-  #   litellm_params:
-  #     model: nvidia_nim/nvidia/nemotron-3-ultra-550b-a55b
-  #     api_key: nvapi-your-nvidia-api-key
-  #   model_info:
-  #     supports_function_calling: true
-  #     supports_web_search: true
-  #     supports_vision: false
-  #     cache_creation_input_token_cost: 0
-  #     cache_read_input_token_cost: 0
 
 litellm_settings:
   drop_params: true
