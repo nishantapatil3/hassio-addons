@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.8
+
+- Restore full configuration template: NVIDIA NIM model, Redis cache, SearXNG
+  web-search, and store_prompts_in_spend_logs — all commented out with
+  instructions so users can opt in without consulting external docs.
+
 ## 1.0.7
 
 - Remove SQLite database default; PostgreSQL is now required for admin UI and key management.

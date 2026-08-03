@@ -20,6 +20,10 @@ DEFAULT_CONFIG = """\
 # Full reference: https://docs.litellm.ai/docs/proxy/configs
 
 model_list:
+  # ============================================================
+  # Claude Code models — these alias names are what Claude Code
+  # sends; backends are free NVIDIA NIM models via OpenRouter.
+  # ============================================================
   - model_name: claude-haiku-4-5-20251001
     litellm_params:
       model: openrouter/nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free
@@ -53,6 +57,21 @@ model_list:
       cache_creation_input_token_cost: 0
       cache_read_input_token_cost: 0
 
+  # ============================================================
+  # NVIDIA NIM direct — requires an NVIDIA API key.
+  # Uncomment and set NVIDIA_API_KEY to use NIM endpoints directly.
+  # ============================================================
+  # - model_name: nemotron-3-ultra-550b-a55b
+  #   litellm_params:
+  #     model: nvidia_nim/nvidia/nemotron-3-ultra-550b-a55b
+  #     api_key: nvapi-your-nvidia-api-key
+  #   model_info:
+  #     supports_function_calling: true
+  #     supports_web_search: true
+  #     supports_vision: false
+  #     cache_creation_input_token_cost: 0
+  #     cache_read_input_token_cost: 0
+
 litellm_settings:
   drop_params: true
   modify_params: true
@@ -62,9 +81,27 @@ litellm_settings:
   cooldown_time: 600
   callbacks:
     - prometheus
+  # Uncomment websearch_interception to route web-search tool calls through
+  # SearXNG. Also uncomment the search_tools and router_settings sections below.
+  # callbacks:
+  #   - websearch_interception
+  #   - prometheus
+  # websearch_interception_params:
+  #   search_tool_name: searxng-search
+  #   enabled_providers:
+  #     - openrouter
+  #     - anthropic
+  #     - openai
   prometheus_initialize_budget_metrics: true
   prometheus_emit_stream_label: true
   require_auth_for_metrics_endpoint: false
+  # Uncomment to enable Redis response caching.
+  # Requires a Redis instance reachable at REDIS_URL.
+  # cache: true
+  # cache_params:
+  #   type: redis
+  #   namespace: litellm-cache
+  #   ttl: 600
 
 router_settings:
   fallbacks:
@@ -73,12 +110,21 @@ router_settings:
     - claude-sonnet-4-6:
         - claude-haiku-4-5-20251001
 
+# Uncomment to route web-search tool calls through a local SearXNG instance.
+# Set SEARXNG_API_BASE to the SearXNG base URL (e.g. http://192.168.1.10:8081).
+# search_tools:
+#   - search_tool_name: searxng-search
+#     litellm_params:
+#       search_provider: searxng
+#       api_base: os.environ/SEARXNG_API_BASE
+
 general_settings:
   master_key: sk-change-me
-  # Set database_url to your PostgreSQL connection string to enable the admin
-  # UI, virtual keys, and spend tracking. Example:
-  #   database_url: "postgresql://litellm:password@192.168.1.10:5432/litellm"
+  # Uncomment and set database_url to enable the admin UI, virtual keys, and
+  # spend tracking. Requires a PostgreSQL instance — see the add-on docs.
+  # database_url: "postgresql://litellm:password@192.168.1.10:5432/litellm"
   # store_model_in_db: true
+  store_prompts_in_spend_logs: true
   use_x_forwarded_for: true
   enforce_user_param: false
   fail_closed_budget_enforcement: true
