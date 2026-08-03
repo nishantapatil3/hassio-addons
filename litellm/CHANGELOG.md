@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.9
+
+- Add legacy options back to schema to silence HA supervisor warnings about
+  unknown options stored from previous addon versions.
+
 ## 1.0.8
 
 - Restore full configuration template: NVIDIA NIM model, Redis cache, SearXNG

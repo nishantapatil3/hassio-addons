@@ -1,6 +1,6 @@
 # https://developers.home-assistant.io/docs/apps/configuration#app-configuration
 name: LiteLLM
-version: "1.0.8"
+version: "1.0.9"
 slug: litellm
 description: >-
   AI gateway for Claude Code and Claude Desktop using OpenRouter and NVIDIA NIM.
@@ -18,4 +18,26 @@ ports_description:
 webui: http://[HOST]:[PORT:4000]/ui
 map:
   - app_config:rw
+options:
+  master_key: ""
+  openrouter_api_key: ""
+  nvidia_api_key: ""
+  database_url: ""
+  redis_url: ""
+  searxng_api_base: ""
+  custom_config: ""
+  enable_prometheus: true
+  enable_file_guardrail: true
+  log_level: "INFO"
+schema:
+  master_key: str?
+  openrouter_api_key: str?
+  nvidia_api_key: str?
+  database_url: str?
+  redis_url: str?
+  searxng_api_base: str?
+  custom_config: str?
+  enable_prometheus: bool?
+  enable_file_guardrail: bool?
+  log_level: str?
 image: ghcr.io/nishantapatil3/litellm
