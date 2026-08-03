@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.5
+
+- Set hostname to `litellm` instead of the auto-generated hash-prefixed value.
+
 ## 1.0.4
 
 - Fix admin UI "Not connected to DB" error by defaulting to a local SQLite database stored in the app data directory.

@@ -1,6 +1,6 @@
 # https://developers.home-assistant.io/docs/apps/configuration#app-configuration
 name: LiteLLM
-version: "1.0.4"
+version: "1.0.5"
 slug: litellm
 description: >-
   AI gateway for Claude Code and Claude Desktop using OpenRouter and NVIDIA NIM.
@@ -8,6 +8,7 @@ url: https://github.com/nishantapatil3/hassio-addons/tree/main/litellm
 arch:
   - aarch64
   - amd64
+hostname: litellm
 init: false
 backup: cold
 ports:
