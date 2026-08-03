@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.1
+
+- Simplify configuration to `master_key` and `openrouter_api_key` only.
+- Prometheus metrics and file/document input guardrail are always enabled.
+- Remove optional PostgreSQL, Redis, SearXNG, NVIDIA NIM, and custom config options.
+- Use native amd64 and arm64 build runners (no QEMU emulation).
+
 ## 1.0.0
 
 - Initial Home Assistant package.
