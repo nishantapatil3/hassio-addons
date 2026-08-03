@@ -34,6 +34,11 @@ class LauncherTests(unittest.TestCase):
         self.assertIn("prometheus", config["litellm_settings"]["callbacks"])
         self.assertIn("guardrails", config)
         self.assertIn("master_key", config["general_settings"])
+        for model in config["model_list"]:
+            self.assertEqual(
+                model["litellm_params"]["api_key"],
+                "os.environ/OPENROUTER_API_KEY",
+            )
 
     def test_addon_config_directory_is_mounted_writable(self):
         config = yaml.safe_load(ADDON_CONFIG.read_text(encoding="utf-8"))
@@ -41,6 +46,25 @@ class LauncherTests(unittest.TestCase):
             {"type": "addon_config", "read_only": False},
             config["map"],
         )
+
+    def test_legacy_openrouter_placeholders_are_migrated(self):
+        with tempfile.TemporaryDirectory() as directory:
+            config_file = Path(directory) / "litellm.yaml"
+            config_file.write_text(
+                "model_list:\n"
+                "  - litellm_params:\n"
+                "      api_key: sk-your-openrouter-api-key\n"
+                "  - litellm_params:\n"
+                "      api_key: sk-user-custom-key\n",
+                encoding="utf-8",
+            )
+            self.launcher.CONFIG_FILE = config_file
+
+            self.assertEqual(self.launcher.migrate_legacy_config(), 1)
+            migrated = config_file.read_text(encoding="utf-8")
+            self.assertIn("api_key: os.environ/OPENROUTER_API_KEY", migrated)
+            self.assertIn("api_key: sk-user-custom-key", migrated)
+            self.assertEqual(self.launcher.migrate_legacy_config(), 0)
 
     def test_salt_key_is_stable_and_private(self):
         with tempfile.TemporaryDirectory() as directory:

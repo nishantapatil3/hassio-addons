@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.18
+
+- Migrate the legacy `sk-your-openrouter-api-key` model placeholder to the
+  `OPENROUTER_API_KEY` environment reference supplied by the add-on UI option.
+
 ## 1.0.17
 
 - Restore the writable `addon_config` mount at `/config` so `litellm.yaml`

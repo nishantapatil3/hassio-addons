@@ -17,6 +17,7 @@ SALT_KEY_PATH = DATA_DIR / "salt_key"
 GUARDRAIL_DIR = Path("/usr/local/lib/litellm-addon")
 BUNDLED_CONFIG = Path("/etc/litellm-addon/litellm.yaml")
 OPTIONS_FILE = Path("/data/options.json")
+OPENROUTER_API_KEY_ENV_REF = "os.environ/OPENROUTER_API_KEY"
 
 
 def get_salt_key() -> str:
@@ -52,6 +53,30 @@ def configure_environment() -> None:
         os.environ["SERVER_ROOT_PATH"] = server_root_path
 
 
+def migrate_legacy_config() -> int:
+    """Replace the legacy bundled OpenRouter placeholder with the UI option."""
+    contents = CONFIG_FILE.read_text(encoding="utf-8")
+    legacy_setting = "api_key: sk-your-openrouter-api-key"
+    replacements = contents.count(legacy_setting)
+    if replacements == 0:
+        return 0
+
+    updated = contents.replace(
+        legacy_setting,
+        f"api_key: {OPENROUTER_API_KEY_ENV_REF}",
+    )
+    temporary_file = CONFIG_FILE.with_suffix(".yaml.tmp")
+    temporary_file.write_text(updated, encoding="utf-8")
+    temporary_file.chmod(CONFIG_FILE.stat().st_mode & 0o777)
+    temporary_file.replace(CONFIG_FILE)
+    print(
+        f"Migrated {replacements} legacy OpenRouter API key placeholder(s) "
+        f"in {CONFIG_FILE}.",
+        flush=True,
+    )
+    return replacements
+
+
 def main() -> int:
     """Copy default config if needed, then exec LiteLLM."""
     if not CONFIG_FILE.exists():
@@ -66,6 +91,7 @@ def main() -> int:
         )
         return 1
 
+    migrate_legacy_config()
     configure_environment()
     python_path = os.environ.get("PYTHONPATH", "")
     os.environ["PYTHONPATH"] = f"{GUARDRAIL_DIR}:{python_path}".rstrip(":")
