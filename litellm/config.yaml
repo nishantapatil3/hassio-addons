@@ -17,5 +17,5 @@ ports_description:
   4000/tcp: LiteLLM API and admin UI
 webui: http://[HOST]:[PORT:4000]/ui
 map:
-  - config:rw
+  - app_config:rw
 image: ghcr.io/nishantapatil3/litellm
