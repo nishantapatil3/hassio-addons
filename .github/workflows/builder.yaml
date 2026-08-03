@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       architectures: ${{ steps.info.outputs.architectures }}
-      build_matrix: ${{ steps.matrix.outputs.matrix }}
+      build_matrix: ${{ steps.runners.outputs.matrix }}
       description: ${{ steps.info.outputs.description }}
       image_name: ${{ steps.normalize.outputs.image_name }}
       name: ${{ steps.info.outputs.name }}
@@ -50,10 +50,22 @@ jobs:
           image-name: ${{ steps.normalize.outputs.image_name }}
           registry-prefix: ${{ steps.normalize.outputs.registry_prefix }}
 
+      - name: Assign dedicated runners
+        id: runners
+        env:
+          MATRIX: ${{ steps.matrix.outputs.matrix }}
+        run: |
+          enriched=$(echo "$MATRIX" | jq -c '
+            .include |= map(. + {
+              "runner": (if .arch == "aarch64" then "ubuntu-24.04-arm" else "ubuntu-latest" end)
+            })
+          ')
+          echo "matrix=$enriched" >> "$GITHUB_OUTPUT"
+
   build:
     name: Build ${{ matrix.arch }} image
     needs: prepare
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.runner }}
     permissions:
       contents: read
       id-token: write
