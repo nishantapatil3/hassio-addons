@@ -8,6 +8,7 @@ import yaml
 
 
 LAUNCHER = Path(__file__).parents[1] / "rootfs/usr/local/bin/litellm-addon"
+BUNDLED_CONFIG = Path(__file__).parents[1] / "rootfs/etc/litellm-addon/litellm.yaml"
 
 
 def load_launcher():
@@ -23,7 +24,7 @@ class LauncherTests(unittest.TestCase):
         self.launcher = load_launcher()
 
     def test_default_config_is_valid_yaml_with_required_sections(self):
-        config = yaml.safe_load(self.launcher.DEFAULT_CONFIG)
+        config = yaml.safe_load(BUNDLED_CONFIG.read_text(encoding="utf-8"))
         aliases = {item["model_name"] for item in config["model_list"]}
         self.assertEqual(
             aliases,

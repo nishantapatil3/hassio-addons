@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.12
+
+- Remove HA UI options and schema — litellm.yaml is now the single configuration
+  point. Edit /addon_configs/a1fb5371_litellm/litellm.yaml directly.
+- Bundled default litellm.yaml uses inline placeholder values instead of
+  os.environ/ references; users replace them in the file.
+- Launcher no longer reads options.json or injects environment variables.
+- Docs rewritten to reflect single-file configuration flow.
+
 ## 1.0.11
 
 - Move default litellm.yaml out of the launcher script into a standalone file

@@ -1,9 +1,6 @@
 # LiteLLM proxy configuration
-# Edit this file and restart the app to apply changes.
+# Edit this file and restart the add-on to apply changes.
 # Full reference: https://docs.litellm.ai/docs/proxy/configs
-#
-# Sensitive values are read from the add-on options panel and injected as
-# environment variables. You can also hardcode them here directly.
 
 model_list:
   # ============================================================
@@ -13,7 +10,7 @@ model_list:
   - model_name: claude-haiku-4-5-20251001
     litellm_params:
       model: openrouter/nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free
-      api_key: os.environ/OPENROUTER_API_KEY
+      api_key: sk-your-openrouter-api-key
     model_info:
       supports_function_calling: true
       supports_web_search: true
@@ -24,7 +21,7 @@ model_list:
   - model_name: claude-sonnet-4-6
     litellm_params:
       model: openrouter/nvidia/nemotron-3-super-120b-a12b:free
-      api_key: os.environ/OPENROUTER_API_KEY
+      api_key: sk-your-openrouter-api-key
     model_info:
       supports_function_calling: true
       supports_web_search: true
@@ -35,7 +32,7 @@ model_list:
   - model_name: claude-opus-4-8
     litellm_params:
       model: openrouter/nvidia/nemotron-3-ultra-550b-a55b:free
-      api_key: os.environ/OPENROUTER_API_KEY
+      api_key: sk-your-openrouter-api-key
     model_info:
       supports_function_calling: true
       supports_web_search: true
@@ -44,13 +41,13 @@ model_list:
       cache_read_input_token_cost: 0
 
   # ============================================================
-  # NVIDIA NIM direct — set nvidia_api_key in add-on options,
-  # then uncomment to use NIM endpoints directly.
+  # NVIDIA NIM direct — uncomment and set your api_key to use
+  # NIM endpoints directly without OpenRouter.
   # ============================================================
   # - model_name: nemotron-3-ultra-550b-a55b
   #   litellm_params:
   #     model: nvidia_nim/nvidia/nemotron-3-ultra-550b-a55b
-  #     api_key: os.environ/NVIDIA_NIM_API_KEY
+  #     api_key: nvapi-your-nvidia-api-key
   #   model_info:
   #     supports_function_calling: true
   #     supports_web_search: true
@@ -67,8 +64,7 @@ litellm_settings:
   cooldown_time: 600
   callbacks:
     - prometheus
-  # To enable SearXNG web-search interception, set searxng_api_base in
-  # add-on options and replace the callbacks block with the one below.
+  # To enable SearXNG web-search interception, replace the callbacks block with:
   # callbacks:
   #   - websearch_interception
   #   - prometheus
@@ -81,11 +77,11 @@ litellm_settings:
   prometheus_initialize_budget_metrics: true
   prometheus_emit_stream_label: true
   require_auth_for_metrics_endpoint: false
-  # To enable Redis response caching, set redis_url in add-on options
-  # and uncomment the block below.
+  # To enable Redis response caching, uncomment and fill in your Redis URL:
   # cache: true
   # cache_params:
   #   type: redis
+  #   url: redis://:password@192.168.1.10:6379/0
   #   namespace: litellm-cache
   #   ttl: 600
 
@@ -96,19 +92,19 @@ router_settings:
     - claude-sonnet-4-6:
         - claude-haiku-4-5-20251001
 
-# To enable SearXNG web-search tool calls, set searxng_api_base in add-on
-# options and uncomment this section (also update callbacks above).
+# To enable SearXNG web-search tool calls, uncomment and fill in your base URL
+# (also update callbacks above):
 # search_tools:
 #   - search_tool_name: searxng-search
 #     litellm_params:
 #       search_provider: searxng
-#       api_base: os.environ/SEARXNG_API_BASE
+#       api_base: http://192.168.1.10:8081
 
 general_settings:
-  master_key: os.environ/LITELLM_MASTER_KEY
-  # To enable the admin UI, virtual keys, and spend tracking, set database_url
-  # in add-on options (requires a PostgreSQL instance — see add-on docs).
-  # database_url: os.environ/DATABASE_URL
+  master_key: sk-change-me
+  # To enable the admin UI, virtual keys, and spend tracking, uncomment and fill
+  # in your PostgreSQL connection string (requires a PostgreSQL instance — see docs):
+  # database_url: postgresql://litellm:password@192.168.1.10:5432/litellm
   # store_model_in_db: true
   store_prompts_in_spend_logs: true
   use_x_forwarded_for: true

@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import json
 import os
 from pathlib import Path
 import secrets
@@ -15,20 +14,7 @@ CONFIG_DIR = Path(os.environ.get("LITELLM_ADDON_CONFIG", "/config"))
 CONFIG_FILE = CONFIG_DIR / "litellm.yaml"
 SALT_KEY_PATH = DATA_DIR / "salt_key"
 GUARDRAIL_DIR = Path("/usr/local/lib/litellm-addon")
-OPTIONS_FILE = DATA_DIR / "options.json"
 BUNDLED_CONFIG = Path("/etc/litellm-addon/litellm.yaml")
-
-# Maps HA add-on option names → LiteLLM / compose environment variable names.
-OPTION_ENV_MAP = {
-    "master_key":        "LITELLM_MASTER_KEY",
-    "openrouter_api_key": "OPENROUTER_API_KEY",
-    "nvidia_api_key":    "NVIDIA_NIM_API_KEY",
-    "database_url":      "DATABASE_URL",
-    "redis_url":         "REDIS_URL",
-    "searxng_api_base":  "SEARXNG_API_BASE",
-    "server_root_path":  "SERVER_ROOT_PATH",
-    "log_level":         "LITELLM_LOG",
-}
 
 
 def get_salt_key() -> str:
@@ -42,20 +28,8 @@ def get_salt_key() -> str:
     return salt_key
 
 
-def apply_options() -> None:
-    """Read add-on options from /data/options.json and inject as env vars."""
-    if not OPTIONS_FILE.exists():
-        return
-    opts: dict = json.loads(OPTIONS_FILE.read_text(encoding="utf-8"))
-    for key, envvar in OPTION_ENV_MAP.items():
-        val = opts.get(key)
-        if val is not None and str(val).strip():
-            os.environ.setdefault(envvar, str(val).strip())
-
-
 def configure_environment() -> None:
-    """Inject add-on options as env vars and set the auto-generated salt key."""
-    apply_options()
+    """Set the auto-generated salt key."""
     os.environ["LITELLM_SALT_KEY"] = get_salt_key()
 
 
@@ -66,8 +40,8 @@ def main() -> int:
         shutil.copy(BUNDLED_CONFIG, CONFIG_FILE)
         print(
             f"Default configuration written to {CONFIG_FILE}.\n"
-            "Set master_key and openrouter_api_key in the add-on options panel,\n"
-            "then restart the app.",
+            "Edit the file to set master_key, api keys, and other settings,\n"
+            "then restart the add-on.",
             file=sys.stderr,
             flush=True,
         )
