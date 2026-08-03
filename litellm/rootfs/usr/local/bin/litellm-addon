@@ -47,6 +47,9 @@ def configure_environment() -> None:
     openrouter_api_key = options.get("openrouter_api_key", "").strip()
     if openrouter_api_key:
         os.environ["OPENROUTER_API_KEY"] = openrouter_api_key
+    server_root_path = options.get("server_root_path", "").strip()
+    if server_root_path:
+        os.environ["SERVER_ROOT_PATH"] = server_root_path
 
 
 def main() -> int:

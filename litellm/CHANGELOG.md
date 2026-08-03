@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.16
+
+- Add `server_root_path` HA UI option — sets the `SERVER_ROOT_PATH` env var
+  for running LiteLLM behind a reverse proxy sub-path (e.g. `/litellm`).
+
 ## 1.0.15
 
 - Remove NVIDIA NIM direct section from bundled litellm.yaml.
