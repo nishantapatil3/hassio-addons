@@ -2,40 +2,47 @@
 
 ## Setup
 
-Before starting the app, configure these required options:
+1. Start the app once — it will exit after writing a default configuration to
+   `litellm.yaml` in this app's configuration folder.
+2. Open the file and replace `sk-your-openrouter-api-key` with your
+   [OpenRouter API key](https://openrouter.ai/keys) and `sk-change-me` with a
+   strong master key starting with `sk-`.
+3. Restart the app.
 
-- `master_key`: a new secret beginning with `sk-`; clients use this key.
-- `openrouter_api_key`: your OpenRouter API key.
+For Claude Code, set `ANTHROPIC_BASE_URL` to `http://HOME_ASSISTANT_IP:4000`
+and `ANTHROPIC_API_KEY` to your configured `master_key`.
 
-Generate a master key on another trusted computer with:
+## Endpoints
 
-```shell
-openssl rand -hex 32 | sed 's/^/sk-/'
-```
-
-Start the app, then use:
-
-- API base: `http://HOME_ASSISTANT_IP:4000`
-- Admin UI: `http://HOME_ASSISTANT_IP:4000/ui`
-- Health: `http://HOME_ASSISTANT_IP:4000/health/liveliness`
-- Metrics: `http://HOME_ASSISTANT_IP:4000/metrics/`
-
-For Claude Code, set `ANTHROPIC_BASE_URL` to the API base and
-`ANTHROPIC_API_KEY` to the configured `master_key`.
+| Path | Purpose |
+| --- | --- |
+| `http://HOME_ASSISTANT_IP:4000` | API base |
+| `http://HOME_ASSISTANT_IP:4000/ui` | Admin UI (login: `admin` / `master_key`) |
+| `http://HOME_ASSISTANT_IP:4000/health/liveliness` | Health check |
+| `http://HOME_ASSISTANT_IP:4000/metrics/` | Prometheus metrics |
 
 ## Default models
 
-| Client model alias | OpenRouter model |
+| Alias | OpenRouter model |
 | --- | --- |
 | `claude-haiku-4-5-20251001` | `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free` |
 | `claude-sonnet-4-6` | `nvidia/nemotron-3-super-120b-a12b:free` |
 | `claude-opus-4-8` | `nvidia/nemotron-3-ultra-550b-a55b:free` |
 
-The default guardrail rejects file and document content blocks before a model
-call. Image content is allowed and routed to the Haiku alias.
+The file guardrail rejects file and document content blocks before a model call.
 
-Prometheus metrics are exposed at `/metrics/`. Point an external Prometheus
-server at `http://HOME_ASSISTANT_IP:4000/metrics/`.
+## Configuration
+
+`litellm.yaml` is a standard [LiteLLM proxy configuration](https://docs.litellm.ai/docs/proxy/configs).
+Edit it to add models, change routing, enable caching, or any other proxy option.
+
+The app automatically sets these environment variables that the config file can
+reference with `os.environ/VAR_NAME`:
+
+| Variable | Value |
+| --- | --- |
+| `DATABASE_URL` | SQLite database stored in the app data directory |
+| `LITELLM_SALT_KEY` | Stable per-installation key for encrypting stored values |
 
 ## Security
 

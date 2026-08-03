@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.6
+
+- Replace HA configuration options with a `litellm.yaml` file in the app config folder.
+- On first start the app writes a default `litellm.yaml` and exits with instructions.
+- Users now edit the file directly for full LiteLLM proxy configuration flexibility.
+
 ## 1.0.5
 
 - Set hostname to `litellm` instead of the auto-generated hash-prefixed value.

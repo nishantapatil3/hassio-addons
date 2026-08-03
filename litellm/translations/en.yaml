@@ -1,10 +1,2 @@
-configuration:
-  master_key:
-    name: Master key
-    description: >-
-      Secret clients use to authenticate with LiteLLM. It must start with sk-.
-  openrouter_api_key:
-    name: OpenRouter API key
-    description: API key used by the default model routes.
 network:
   4000/tcp: LiteLLM API and admin UI port

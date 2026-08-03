@@ -1,106 +1,95 @@
 #!/usr/bin/env python3
-"""Translate Home Assistant app options into a LiteLLM proxy process."""
+"""Start LiteLLM proxy from a user-provided configuration file."""
 
 from __future__ import annotations
 
-import json
 import os
 from pathlib import Path
 import secrets
 import sys
 
-import yaml
-
-OPTIONS_PATH = Path(os.environ.get("LITELLM_ADDON_OPTIONS", "/data/options.json"))
 DATA_DIR = Path(os.environ.get("LITELLM_ADDON_DATA", "/data"))
-GENERATED_CONFIG = DATA_DIR / "litellm.yaml"
+CONFIG_DIR = Path(os.environ.get("LITELLM_ADDON_CONFIG", "/config"))
+CONFIG_FILE = CONFIG_DIR / "litellm.yaml"
 SALT_KEY_PATH = DATA_DIR / "salt_key"
 GUARDRAIL_DIR = Path("/usr/local/lib/litellm-addon")
 
+DEFAULT_CONFIG = """\
+# LiteLLM proxy configuration
+# Edit this file and restart the app to apply changes.
+# Full reference: https://docs.litellm.ai/docs/proxy/configs
 
-def model(name: str, upstream: str, api_key_env: str) -> dict:
-    """Create a model entry with the metadata used by the Compose stack."""
-    return {
-        "model_name": name,
-        "litellm_params": {
-            "model": upstream,
-            "api_key": f"os.environ/{api_key_env}",
-        },
-        "model_info": {
-            "supports_function_calling": True,
-            "supports_web_search": True,
-            "supports_vision": False,
-            "cache_creation_input_token_cost": 0,
-            "cache_read_input_token_cost": 0,
-        },
-    }
+model_list:
+  - model_name: claude-haiku-4-5-20251001
+    litellm_params:
+      model: openrouter/nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free
+      api_key: sk-your-openrouter-api-key
+    model_info:
+      supports_function_calling: true
+      supports_web_search: true
+      supports_vision: false
+      cache_creation_input_token_cost: 0
+      cache_read_input_token_cost: 0
 
+  - model_name: claude-sonnet-4-6
+    litellm_params:
+      model: openrouter/nvidia/nemotron-3-super-120b-a12b:free
+      api_key: sk-your-openrouter-api-key
+    model_info:
+      supports_function_calling: true
+      supports_web_search: true
+      supports_vision: false
+      cache_creation_input_token_cost: 0
+      cache_read_input_token_cost: 0
 
-def build_config() -> dict:
-    """Build the default LiteLLM configuration."""
-    litellm_settings: dict = {
-        "drop_params": True,
-        "modify_params": True,
-        "set_verbose": False,
-        "global_max_parallel_requests": 100,
-        "allowed_fails": 5,
-        "cooldown_time": 600,
-        "callbacks": ["prometheus"],
-        "prometheus_initialize_budget_metrics": True,
-        "prometheus_emit_stream_label": True,
-        "require_auth_for_metrics_endpoint": False,
-    }
+  - model_name: claude-opus-4-8
+    litellm_params:
+      model: openrouter/nvidia/nemotron-3-ultra-550b-a55b:free
+      api_key: sk-your-openrouter-api-key
+    model_info:
+      supports_function_calling: true
+      supports_web_search: true
+      supports_vision: false
+      cache_creation_input_token_cost: 0
+      cache_read_input_token_cost: 0
 
-    models = [
-        model(
-            "claude-haiku-4-5-20251001",
-            "openrouter/nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
-            "OPENROUTER_API_KEY",
-        ),
-        model(
-            "claude-sonnet-4-6",
-            "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
-            "OPENROUTER_API_KEY",
-        ),
-        model(
-            "claude-opus-4-8",
-            "openrouter/nvidia/nemotron-3-ultra-550b-a55b:free",
-            "OPENROUTER_API_KEY",
-        ),
-    ]
+litellm_settings:
+  drop_params: true
+  modify_params: true
+  set_verbose: false
+  global_max_parallel_requests: 100
+  allowed_fails: 5
+  cooldown_time: 600
+  callbacks:
+    - prometheus
+  prometheus_initialize_budget_metrics: true
+  prometheus_emit_stream_label: true
+  require_auth_for_metrics_endpoint: false
 
-    general_settings = {
-        "master_key": "os.environ/LITELLM_MASTER_KEY",
-        "database_url": "os.environ/DATABASE_URL",
-        "store_prompts_in_spend_logs": True,
-        "store_model_in_db": True,
-        "use_x_forwarded_for": True,
-        "enforce_user_param": False,
-        "fail_closed_budget_enforcement": True,
-        "reject_clientside_metadata_tags": True,
-    }
+router_settings:
+  fallbacks:
+    - claude-opus-4-8:
+        - claude-sonnet-4-6
+    - claude-sonnet-4-6:
+        - claude-haiku-4-5-20251001
 
-    return {
-        "model_list": models,
-        "litellm_settings": litellm_settings,
-        "router_settings": {
-            "fallbacks": [
-                {"claude-opus-4-8": ["claude-sonnet-4-6"]},
-                {"claude-sonnet-4-6": ["claude-haiku-4-5-20251001"]},
-            ]
-        },
-        "general_settings": general_settings,
-        "guardrails": [
-            {
-                "guardrail_name": "no-file-input",
-                "litellm_params": {
-                    "guardrail": "no_file_input_guardrail.NoFileInputGuardrail",
-                    "mode": "pre_call",
-                    "default_on": True,
-                },
-            }
-        ],
-    }
+general_settings:
+  master_key: sk-change-me
+  database_url: os.environ/DATABASE_URL
+  store_prompts_in_spend_logs: true
+  store_model_in_db: true
+  use_x_forwarded_for: true
+  enforce_user_param: false
+  fail_closed_budget_enforcement: true
+  reject_clientside_metadata_tags: true
+
+guardrails:
+  - guardrail_name: no-file-input
+    litellm_params:
+      guardrail: no_file_input_guardrail.NoFileInputGuardrail
+      mode: pre_call
+      default_on: true
+"""
 
 
 def get_salt_key() -> str:
@@ -114,61 +103,36 @@ def get_salt_key() -> str:
     return salt_key
 
 
-def load_options() -> dict:
-    """Read options written by the Home Assistant Supervisor."""
-    try:
-        return json.loads(OPTIONS_PATH.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as error:
-        raise ValueError(f"unable to read {OPTIONS_PATH}: {error}") from error
-
-
-def configure_environment(options: dict) -> None:
-    """Export secrets without writing them to generated configuration files."""
+def configure_environment() -> None:
+    """Set environment variables the config file can reference."""
     db_path = DATA_DIR / "litellm.db"
-    environment = {
-        "LITELLM_MASTER_KEY": options.get("master_key", ""),
-        "OPENROUTER_API_KEY": options.get("openrouter_api_key", ""),
-        "LITELLM_SALT_KEY": get_salt_key(),
-        "DATABASE_URL": f"sqlite+aiosqlite:///{db_path}",
-    }
-    for name, value in environment.items():
-        if value:
-            os.environ[name] = str(value)
+    os.environ.setdefault("DATABASE_URL", f"sqlite+aiosqlite:///{db_path}")
+    os.environ["LITELLM_SALT_KEY"] = get_salt_key()
 
 
 def main() -> int:
-    """Generate configuration and replace this process with LiteLLM."""
-    try:
-        options = load_options()
-        master_key = options.get("master_key", "")
-        if not master_key.startswith("sk-"):
-            raise ValueError("master_key must start with 'sk-'")
-        if not options.get("openrouter_api_key"):
-            raise ValueError("openrouter_api_key is required")
-
-        configure_environment(options)
-        DATA_DIR.mkdir(parents=True, exist_ok=True)
-        GENERATED_CONFIG.write_text(
-            yaml.safe_dump(build_config(), sort_keys=False),
-            encoding="utf-8",
+    """Write default config if needed, then exec LiteLLM."""
+    if not CONFIG_FILE.exists():
+        CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+        CONFIG_FILE.write_text(DEFAULT_CONFIG, encoding="utf-8")
+        print(
+            f"Default configuration written to {CONFIG_FILE}.\n"
+            "Edit the file to set your master_key and OpenRouter API key, then restart the app.",
+            file=sys.stderr,
+            flush=True,
         )
-        print(f"Generated LiteLLM configuration: {GENERATED_CONFIG}", flush=True)
-
-        python_path = os.environ.get("PYTHONPATH", "")
-        os.environ["PYTHONPATH"] = f"{GUARDRAIL_DIR}:{python_path}".rstrip(":")
-        args = [
-            "litellm",
-            "--config",
-            str(GENERATED_CONFIG),
-            "--host",
-            "0.0.0.0",
-            "--port",
-            "4000",
-        ]
-        os.execvp(args[0], args)
-    except ValueError as error:
-        print(f"Configuration error: {error}", file=sys.stderr, flush=True)
         return 1
+
+    configure_environment()
+    python_path = os.environ.get("PYTHONPATH", "")
+    os.environ["PYTHONPATH"] = f"{GUARDRAIL_DIR}:{python_path}".rstrip(":")
+    print(f"Starting LiteLLM with configuration: {CONFIG_FILE}", flush=True)
+    os.execvp("litellm", [
+        "litellm",
+        "--config", str(CONFIG_FILE),
+        "--host", "0.0.0.0",
+        "--port", "4000",
+    ])
     return 0
 
 
