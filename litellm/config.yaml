@@ -8,7 +8,6 @@ url: https://github.com/nishantapatil3/hassio-addons/tree/main/litellm
 arch:
   - aarch64
   - amd64
-hostname: litellm
 init: false
 backup: cold
 ports:
@@ -17,5 +16,5 @@ ports_description:
   4000/tcp: LiteLLM API and admin UI
 webui: http://[HOST]:[PORT:4000]/ui
 map:
-  - app_config:rw
+  - addon_config:rw
 image: ghcr.io/nishantapatil3/litellm
