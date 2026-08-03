@@ -1,4 +1,4 @@
-# Nishant's Home Assistant apps
+# Home Assistant apps
 
 This repository contains Home Assistant apps (formerly called add-ons).
 
