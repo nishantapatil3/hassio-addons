@@ -19,6 +19,9 @@ venv/
 dist/
 build/
 
+# Claude Code
+.claude/
+
 # Secrets & local config
 .env
 .env.*
