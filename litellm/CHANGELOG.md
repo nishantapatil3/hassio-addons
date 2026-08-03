@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.7
+
+- Remove SQLite database default; PostgreSQL is now required for admin UI and key management.
+- Default `litellm.yaml` includes a commented-out `database_url` example with instructions.
+- Docs updated with PostgreSQL prerequisite steps.
+
 ## 1.0.6
 
 - Replace HA configuration options with a `litellm.yaml` file in the app config folder.

@@ -75,9 +75,10 @@ router_settings:
 
 general_settings:
   master_key: sk-change-me
-  database_url: os.environ/DATABASE_URL
-  store_prompts_in_spend_logs: true
-  store_model_in_db: true
+  # Set database_url to your PostgreSQL connection string to enable the admin
+  # UI, virtual keys, and spend tracking. Example:
+  #   database_url: "postgresql://litellm:password@192.168.1.10:5432/litellm"
+  # store_model_in_db: true
   use_x_forwarded_for: true
   enforce_user_param: false
   fail_closed_budget_enforcement: true
@@ -105,8 +106,6 @@ def get_salt_key() -> str:
 
 def configure_environment() -> None:
     """Set environment variables the config file can reference."""
-    db_path = DATA_DIR / "litellm.db"
-    os.environ.setdefault("DATABASE_URL", f"sqlite+aiosqlite:///{db_path}")
     os.environ["LITELLM_SALT_KEY"] = get_salt_key()
 
 
