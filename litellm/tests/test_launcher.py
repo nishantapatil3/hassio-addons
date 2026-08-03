@@ -33,7 +33,7 @@ class LauncherTests(unittest.TestCase):
         )
         self.assertIn("prometheus", config["litellm_settings"]["callbacks"])
         self.assertIn("guardrails", config)
-        self.assertFalse(config["general_settings"]["store_model_in_db"])
+        self.assertTrue(config["general_settings"]["store_model_in_db"])
 
     def test_salt_key_is_stable_and_private(self):
         with tempfile.TemporaryDirectory() as directory:

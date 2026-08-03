@@ -71,12 +71,13 @@ def build_config() -> dict:
 
     general_settings = {
         "master_key": "os.environ/LITELLM_MASTER_KEY",
+        "database_url": "os.environ/DATABASE_URL",
         "store_prompts_in_spend_logs": True,
+        "store_model_in_db": True,
         "use_x_forwarded_for": True,
         "enforce_user_param": False,
         "fail_closed_budget_enforcement": True,
         "reject_clientside_metadata_tags": True,
-        "store_model_in_db": False,
     }
 
     return {
@@ -123,10 +124,12 @@ def load_options() -> dict:
 
 def configure_environment(options: dict) -> None:
     """Export secrets without writing them to generated configuration files."""
+    db_path = DATA_DIR / "litellm.db"
     environment = {
         "LITELLM_MASTER_KEY": options.get("master_key", ""),
         "OPENROUTER_API_KEY": options.get("openrouter_api_key", ""),
         "LITELLM_SALT_KEY": get_salt_key(),
+        "DATABASE_URL": f"sqlite+aiosqlite:///{db_path}",
     }
     for name, value in environment.items():
         if value:
