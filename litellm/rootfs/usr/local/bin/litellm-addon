@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 import secrets
@@ -13,21 +14,37 @@ CONFIG_DIR = Path(os.environ.get("LITELLM_ADDON_CONFIG", "/config"))
 CONFIG_FILE = CONFIG_DIR / "litellm.yaml"
 SALT_KEY_PATH = DATA_DIR / "salt_key"
 GUARDRAIL_DIR = Path("/usr/local/lib/litellm-addon")
+OPTIONS_FILE = DATA_DIR / "options.json"
+
+# Maps HA add-on option names → LiteLLM / compose environment variable names.
+OPTION_ENV_MAP = {
+    "master_key":        "LITELLM_MASTER_KEY",
+    "openrouter_api_key": "OPENROUTER_API_KEY",
+    "nvidia_api_key":    "NVIDIA_NIM_API_KEY",
+    "database_url":      "DATABASE_URL",
+    "redis_url":         "REDIS_URL",
+    "searxng_api_base":  "SEARXNG_API_BASE",
+    "server_root_path":  "SERVER_ROOT_PATH",
+    "log_level":         "LITELLM_LOG",
+}
 
 DEFAULT_CONFIG = """\
 # LiteLLM proxy configuration
 # Edit this file and restart the app to apply changes.
 # Full reference: https://docs.litellm.ai/docs/proxy/configs
+#
+# Sensitive values are read from the add-on options panel and injected as
+# environment variables. You can also hardcode them here directly.
 
 model_list:
   # ============================================================
-  # Claude Code models — these alias names are what Claude Code
-  # sends; backends are free NVIDIA NIM models via OpenRouter.
+  # Claude Code models — Claude model names mapped to free NVIDIA
+  # NIM models via OpenRouter. Replace with any supported backend.
   # ============================================================
   - model_name: claude-haiku-4-5-20251001
     litellm_params:
       model: openrouter/nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free
-      api_key: sk-your-openrouter-api-key
+      api_key: os.environ/OPENROUTER_API_KEY
     model_info:
       supports_function_calling: true
       supports_web_search: true
@@ -38,7 +55,7 @@ model_list:
   - model_name: claude-sonnet-4-6
     litellm_params:
       model: openrouter/nvidia/nemotron-3-super-120b-a12b:free
-      api_key: sk-your-openrouter-api-key
+      api_key: os.environ/OPENROUTER_API_KEY
     model_info:
       supports_function_calling: true
       supports_web_search: true
@@ -49,7 +66,7 @@ model_list:
   - model_name: claude-opus-4-8
     litellm_params:
       model: openrouter/nvidia/nemotron-3-ultra-550b-a55b:free
-      api_key: sk-your-openrouter-api-key
+      api_key: os.environ/OPENROUTER_API_KEY
     model_info:
       supports_function_calling: true
       supports_web_search: true
@@ -58,13 +75,13 @@ model_list:
       cache_read_input_token_cost: 0
 
   # ============================================================
-  # NVIDIA NIM direct — requires an NVIDIA API key.
-  # Uncomment and set NVIDIA_API_KEY to use NIM endpoints directly.
+  # NVIDIA NIM direct — set nvidia_api_key in add-on options,
+  # then uncomment to use NIM endpoints directly.
   # ============================================================
   # - model_name: nemotron-3-ultra-550b-a55b
   #   litellm_params:
   #     model: nvidia_nim/nvidia/nemotron-3-ultra-550b-a55b
-  #     api_key: nvapi-your-nvidia-api-key
+  #     api_key: os.environ/NVIDIA_NIM_API_KEY
   #   model_info:
   #     supports_function_calling: true
   #     supports_web_search: true
@@ -81,8 +98,8 @@ litellm_settings:
   cooldown_time: 600
   callbacks:
     - prometheus
-  # Uncomment websearch_interception to route web-search tool calls through
-  # SearXNG. Also uncomment the search_tools and router_settings sections below.
+  # To enable SearXNG web-search interception, set searxng_api_base in
+  # add-on options and replace the callbacks block with the one below.
   # callbacks:
   #   - websearch_interception
   #   - prometheus
@@ -95,8 +112,8 @@ litellm_settings:
   prometheus_initialize_budget_metrics: true
   prometheus_emit_stream_label: true
   require_auth_for_metrics_endpoint: false
-  # Uncomment to enable Redis response caching.
-  # Requires a Redis instance reachable at REDIS_URL.
+  # To enable Redis response caching, set redis_url in add-on options
+  # and uncomment the block below.
   # cache: true
   # cache_params:
   #   type: redis
@@ -110,8 +127,8 @@ router_settings:
     - claude-sonnet-4-6:
         - claude-haiku-4-5-20251001
 
-# Uncomment to route web-search tool calls through a local SearXNG instance.
-# Set SEARXNG_API_BASE to the SearXNG base URL (e.g. http://192.168.1.10:8081).
+# To enable SearXNG web-search tool calls, set searxng_api_base in add-on
+# options and uncomment this section (also update callbacks above).
 # search_tools:
 #   - search_tool_name: searxng-search
 #     litellm_params:
@@ -119,10 +136,10 @@ router_settings:
 #       api_base: os.environ/SEARXNG_API_BASE
 
 general_settings:
-  master_key: sk-change-me
-  # Uncomment and set database_url to enable the admin UI, virtual keys, and
-  # spend tracking. Requires a PostgreSQL instance — see the add-on docs.
-  # database_url: "postgresql://litellm:password@192.168.1.10:5432/litellm"
+  master_key: os.environ/LITELLM_MASTER_KEY
+  # To enable the admin UI, virtual keys, and spend tracking, set database_url
+  # in add-on options (requires a PostgreSQL instance — see add-on docs).
+  # database_url: os.environ/DATABASE_URL
   # store_model_in_db: true
   store_prompts_in_spend_logs: true
   use_x_forwarded_for: true
@@ -150,8 +167,20 @@ def get_salt_key() -> str:
     return salt_key
 
 
+def apply_options() -> None:
+    """Read add-on options from /data/options.json and inject as env vars."""
+    if not OPTIONS_FILE.exists():
+        return
+    opts: dict = json.loads(OPTIONS_FILE.read_text(encoding="utf-8"))
+    for key, envvar in OPTION_ENV_MAP.items():
+        val = opts.get(key)
+        if val is not None and str(val).strip():
+            os.environ.setdefault(envvar, str(val).strip())
+
+
 def configure_environment() -> None:
-    """Set environment variables the config file can reference."""
+    """Inject add-on options as env vars and set the auto-generated salt key."""
+    apply_options()
     os.environ["LITELLM_SALT_KEY"] = get_salt_key()
 
 
@@ -162,7 +191,8 @@ def main() -> int:
         CONFIG_FILE.write_text(DEFAULT_CONFIG, encoding="utf-8")
         print(
             f"Default configuration written to {CONFIG_FILE}.\n"
-            "Edit the file to set your master_key and OpenRouter API key, then restart the app.",
+            "Set master_key and openrouter_api_key in the add-on options panel,\n"
+            "then restart the app.",
             file=sys.stderr,
             flush=True,
         )

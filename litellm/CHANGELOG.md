@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.0.10
+
+- Add-on options now map to environment variables matching the litellm-compose
+  .env.example (LITELLM_MASTER_KEY, OPENROUTER_API_KEY, NVIDIA_NIM_API_KEY,
+  DATABASE_URL, REDIS_URL, SEARXNG_API_BASE, SERVER_ROOT_PATH, LITELLM_LOG).
+- Default litellm.yaml uses os.environ/ references for all sensitive values so
+  users only need to fill in the add-on options panel, not edit the yaml file.
+- Add server_root_path option (SERVER_ROOT_PATH).
+- Add translations for all options with descriptions.
+- Update docs to reflect options-driven setup flow.
+
 ## 1.0.9
 
 - Add legacy options back to schema to silence HA supervisor warnings about

@@ -20,15 +20,17 @@ will not work.
 
 ## Setup
 
-1. Start the app once — it will exit after writing a default configuration to
-   `litellm.yaml` in this app's configuration folder.
-2. Open the file and:
-   - Replace `sk-change-me` with a strong master key starting with `sk-`.
-   - Replace `sk-your-openrouter-api-key` with your
-     [OpenRouter API key](https://openrouter.ai/keys).
-   - Uncomment and fill in the `database_url` and `store_model_in_db` lines
-     under `general_settings` with your PostgreSQL connection string.
+1. In the add-on **Configuration** tab, set:
+   - **Master key** — a strong key starting with `sk-` (clients use this to authenticate).
+   - **OpenRouter API key** — from [openrouter.ai/keys](https://openrouter.ai/keys).
+2. Start the app once — it writes a default `litellm.yaml` to the app config
+   folder and exits with instructions.
 3. Restart the app.
+
+The default `litellm.yaml` reads all sensitive values from the add-on options
+via `os.environ/` references, so you normally do not need to edit the file.
+Edit it to add models, change routing, enable caching, or adjust any other
+proxy setting.
 
 For Claude Code, set `ANTHROPIC_BASE_URL` to `http://HOME_ASSISTANT_IP:4000`
 and `ANTHROPIC_API_KEY` to your configured `master_key`.
@@ -57,12 +59,20 @@ The file guardrail rejects file and document content blocks before a model call.
 `litellm.yaml` is a standard [LiteLLM proxy configuration](https://docs.litellm.ai/docs/proxy/configs).
 Edit it to add models, change routing, enable caching, or any other proxy option.
 
-The app automatically sets this environment variable that the config file can
-reference with `os.environ/VAR_NAME`:
+The add-on injects these environment variables into the proxy process, which
+`litellm.yaml` can reference with `os.environ/VAR_NAME`:
 
-| Variable | Value |
-| --- | --- |
-| `LITELLM_SALT_KEY` | Stable per-installation key for encrypting stored values |
+| Add-on option | Environment variable | Purpose |
+| --- | --- | --- |
+| `master_key` | `LITELLM_MASTER_KEY` | API authentication key |
+| `openrouter_api_key` | `OPENROUTER_API_KEY` | OpenRouter backend |
+| `nvidia_api_key` | `NVIDIA_NIM_API_KEY` | NVIDIA NIM backend |
+| `database_url` | `DATABASE_URL` | PostgreSQL for admin UI / keys |
+| `redis_url` | `REDIS_URL` | Redis response cache |
+| `searxng_api_base` | `SEARXNG_API_BASE` | SearXNG web-search |
+| `server_root_path` | `SERVER_ROOT_PATH` | Custom base path |
+| `log_level` | `LITELLM_LOG` | Log verbosity |
+| *(auto-generated)* | `LITELLM_SALT_KEY` | Encrypts stored secrets |
 
 ## Security
 
