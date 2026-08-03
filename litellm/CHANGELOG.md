@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.17
+
+- Restore the writable `addon_config` mount at `/config` so `litellm.yaml`
+  persists across container restarts.
+
 ## 1.0.16
 
 - Add `server_root_path` HA UI option — sets the `SERVER_ROOT_PATH` env var

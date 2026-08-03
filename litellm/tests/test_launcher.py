@@ -9,6 +9,7 @@ import yaml
 
 LAUNCHER = Path(__file__).parents[1] / "rootfs/usr/local/bin/litellm-addon"
 BUNDLED_CONFIG = Path(__file__).parents[1] / "rootfs/etc/litellm-addon/litellm.yaml"
+ADDON_CONFIG = Path(__file__).parents[1] / "config.yaml"
 
 
 def load_launcher():
@@ -33,6 +34,13 @@ class LauncherTests(unittest.TestCase):
         self.assertIn("prometheus", config["litellm_settings"]["callbacks"])
         self.assertIn("guardrails", config)
         self.assertIn("master_key", config["general_settings"])
+
+    def test_addon_config_directory_is_mounted_writable(self):
+        config = yaml.safe_load(ADDON_CONFIG.read_text(encoding="utf-8"))
+        self.assertIn(
+            {"type": "addon_config", "read_only": False},
+            config["map"],
+        )
 
     def test_salt_key_is_stable_and_private(self):
         with tempfile.TemporaryDirectory() as directory:
