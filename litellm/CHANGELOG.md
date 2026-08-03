@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.13
+
+- Add `master_key` HA UI option — set your LiteLLM master key in the add-on
+  configuration panel without editing litellm.yaml directly.
+- Bundled litellm.yaml uses `os.environ/LITELLM_MASTER_KEY`; the HA UI value
+  overrides it when set, otherwise the file's own value is used.
+
 ## 1.0.12
 
 - Remove HA UI options and schema — litellm.yaml is now the single configuration

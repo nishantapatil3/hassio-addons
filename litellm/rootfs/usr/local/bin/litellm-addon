@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 import secrets
@@ -15,6 +16,7 @@ CONFIG_FILE = CONFIG_DIR / "litellm.yaml"
 SALT_KEY_PATH = DATA_DIR / "salt_key"
 GUARDRAIL_DIR = Path("/usr/local/lib/litellm-addon")
 BUNDLED_CONFIG = Path("/etc/litellm-addon/litellm.yaml")
+OPTIONS_FILE = Path("/data/options.json")
 
 
 def get_salt_key() -> str:
@@ -28,9 +30,20 @@ def get_salt_key() -> str:
     return salt_key
 
 
+def get_options() -> dict:
+    """Read HA add-on options from options.json."""
+    if OPTIONS_FILE.exists():
+        return json.loads(OPTIONS_FILE.read_text(encoding="utf-8"))
+    return {}
+
+
 def configure_environment() -> None:
-    """Set the auto-generated salt key."""
+    """Set the auto-generated salt key and any user-configured options."""
     os.environ["LITELLM_SALT_KEY"] = get_salt_key()
+    options = get_options()
+    master_key = options.get("master_key", "").strip()
+    if master_key:
+        os.environ["LITELLM_MASTER_KEY"] = master_key
 
 
 def main() -> int:
