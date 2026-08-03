@@ -120,10 +120,10 @@ router_settings:
 
 general_settings:
   master_key: sk-change-me
-  # Uncomment and set database_url to enable the admin UI, virtual keys, and
-  # spend tracking. Requires a PostgreSQL instance — see the add-on docs.
-  # database_url: "postgresql://litellm:password@192.168.1.10:5432/litellm"
-  # store_model_in_db: true
+  # Set your PostgreSQL credentials below to enable the admin UI, virtual keys,
+  # and spend tracking. The hostname is the HA PostgreSQL add-on default.
+  database_url: "postgresql://homeassistant:homeassistant@db21ed7f-postgres-latest:5432/homeassistant"
+  store_model_in_db: true
   store_prompts_in_spend_logs: true
   use_x_forwarded_for: true
   enforce_user_param: false

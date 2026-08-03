@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.9
+
+- Default `database_url` now points to the HA PostgreSQL add-on (`db21ed7f-postgres-latest`)
+  with default credentials (`homeassistant:homeassistant`). Edit the password if yours differs.
+- `store_model_in_db: true` enabled by default alongside `database_url`.
+
 ## 1.0.8
 
 - Restore full configuration template: NVIDIA NIM model, Redis cache, SearXNG
