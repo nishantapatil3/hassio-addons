@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.11
+
+- Move default litellm.yaml out of the launcher script into a standalone file
+  bundled in the image at /etc/litellm-addon/litellm.yaml.
+- On first start the launcher copies the bundled file to the config directory
+  instead of writing an embedded Python string.
+
 ## 1.0.10
 
 - Add-on options now map to environment variables matching the litellm-compose
