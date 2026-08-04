@@ -43,4 +43,10 @@ jobs:
           path: ./${{ matrix.path }}
 
       - name: Test launcher
-        run: python3 -m unittest discover -s ./${{ matrix.path }}/tests -v
+        run: |
+          if compgen -G "./${{ matrix.path }}/tests/test*.py" > /dev/null || \
+             compgen -G "./${{ matrix.path }}/tests/*_test.py" > /dev/null; then
+            python3 -m unittest discover -s ./${{ matrix.path }}/tests -v
+          else
+            echo "No Python tests found for ${{ matrix.path }}; skipping test launcher."
+          fi

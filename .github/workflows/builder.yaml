@@ -41,9 +41,11 @@ jobs:
           VERSION: ${{ steps.info.outputs.version }}
         run: |
           clean="${IMAGE//\"/}"
-          echo "image_name=${clean##*/}" >> "$GITHUB_OUTPUT"
-          echo "registry_prefix=${clean%/*}" >> "$GITHUB_OUTPUT"
-          echo "version=${VERSION//\"/}" >> "$GITHUB_OUTPUT"
+          {
+            echo "image_name=${clean##*/}"
+            echo "registry_prefix=${clean%/*}"
+            echo "version=${VERSION//\"/}"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Prepare build matrix
         id: matrix
