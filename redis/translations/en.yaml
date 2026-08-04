@@ -1,0 +1,13 @@
+configuration:
+  password:
+    name: Password
+    description: >-
+      Password clients must provide via AUTH before executing commands.
+      Leave empty to disable authentication.
+  loglevel:
+    name: Log level
+    description: Verbosity of Redis log output.
+  appendonly:
+    name: AOF persistence
+    description: >-
+      Enable append-only file (AOF) persistence so data survives restarts.

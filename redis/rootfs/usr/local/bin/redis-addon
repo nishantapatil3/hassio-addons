@@ -1,0 +1,29 @@
+#!/bin/sh
+# Read HA add-on options and launch redis-server.
+
+OPTIONS_FILE="/data/options.json"
+
+LOGLEVEL="notice"
+APPENDONLY="no"
+PASSWORD=""
+
+if [ -f "$OPTIONS_FILE" ]; then
+    PASSWORD=$(jq -r '.password // ""' "$OPTIONS_FILE")
+    LOGLEVEL=$(jq -r '.loglevel // "notice"' "$OPTIONS_FILE")
+    if jq -e '.appendonly == true' "$OPTIONS_FILE" > /dev/null 2>&1; then
+        APPENDONLY="yes"
+    fi
+fi
+
+echo "Starting Redis (loglevel=${LOGLEVEL}, appendonly=${APPENDONLY})..."
+
+set -- redis-server \
+    --loglevel "$LOGLEVEL" \
+    --bind 0.0.0.0 \
+    --port 6379 \
+    --dir /data \
+    --appendonly "$APPENDONLY"
+
+[ -n "$PASSWORD" ] && set -- "$@" --requirepass "$PASSWORD"
+
+exec "$@"

@@ -1,0 +1,23 @@
+name: Redis
+version: "1.0.0"
+slug: redis
+description: >-
+  Redis in-memory data store for Home Assistant add-ons and automations.
+url: https://github.com/nishantapatil3/hassio-addons/tree/main/redis
+arch:
+  - aarch64
+  - amd64
+init: false
+backup: cold
+ports:
+  6379/tcp: 6379
+ports_description:
+  6379/tcp: Redis port
+options:
+  loglevel: "notice"
+  appendonly: false
+schema:
+  password: str?
+  loglevel: list(debug|verbose|notice|warning)
+  appendonly: bool
+image: ghcr.io/nishantapatil3/redis
