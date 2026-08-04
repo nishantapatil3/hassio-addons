@@ -3,7 +3,7 @@ name: LiteLLM
 version: "1.0.18"
 slug: litellm
 description: >-
-  AI gateway for Claude Code and Claude Desktop using OpenRouter and NVIDIA NIM.
+  AI gateway for Claude Code and Claude Desktop using OpenRouter.
 url: https://github.com/nishantapatil3/hassio-addons/tree/main/litellm
 arch:
   - aarch64
@@ -21,7 +21,7 @@ map:
 options:
   master_key: ""
   openrouter_api_key: ""
-  server_root_path: /
+  server_root_path: ""
 schema:
   master_key: str
   openrouter_api_key: str
