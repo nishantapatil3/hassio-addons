@@ -1,0 +1,24 @@
+#!/bin/sh
+# Read HA add-on options and launch PostgreSQL.
+
+OPTIONS_FILE="/data/options.json"
+
+POSTGRES_USER="postgres"
+POSTGRES_PASSWORD="homeassistant"
+POSTGRES_DB=""
+
+if [ -f "$OPTIONS_FILE" ]; then
+    POSTGRES_USER=$(jq -r '.POSTGRES_USER // "postgres"' "$OPTIONS_FILE")
+    POSTGRES_PASSWORD=$(jq -r '.POSTGRES_PASSWORD // "homeassistant"' "$OPTIONS_FILE")
+    POSTGRES_DB=$(jq -r '.POSTGRES_DB // ""' "$OPTIONS_FILE")
+fi
+
+export POSTGRES_USER
+export POSTGRES_PASSWORD
+[ -n "$POSTGRES_DB" ] && export POSTGRES_DB
+
+# Store data in HA persistent data volume so it survives add-on updates.
+export PGDATA="/data/postgresql"
+
+echo "Starting PostgreSQL 18 (user=${POSTGRES_USER}, pgdata=${PGDATA})..."
+exec docker-entrypoint.sh postgres

@@ -1,0 +1,23 @@
+name: PostgreSQL 18
+version: "1.0.0"
+slug: postgres
+description: >-
+  PostgreSQL 18 database for Home Assistant add-ons and automations.
+url: https://github.com/nishantapatil3/hassio-addons/tree/main/postgres
+arch:
+  - aarch64
+  - amd64
+init: false
+backup: cold
+ports:
+  5432/tcp: 5432
+ports_description:
+  5432/tcp: PostgreSQL port
+options:
+  POSTGRES_PASSWORD: "homeassistant"
+  POSTGRES_USER: "postgres"
+schema:
+  POSTGRES_PASSWORD: password
+  POSTGRES_USER: str
+  POSTGRES_DB: str?
+image: ghcr.io/nishantapatil3/postgres

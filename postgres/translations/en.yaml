@@ -1,0 +1,12 @@
+configuration:
+  POSTGRES_PASSWORD:
+    name: Password
+    description: Password for the PostgreSQL superuser account.
+  POSTGRES_USER:
+    name: Username
+    description: Superuser account name. Default is "postgres".
+  POSTGRES_DB:
+    name: Default database
+    description: >-
+      Name of the default database created on first start.
+      Defaults to the value of Username if left empty.
