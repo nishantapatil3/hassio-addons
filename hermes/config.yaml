@@ -1,0 +1,69 @@
+# https://developers.home-assistant.io/docs/apps/configuration#app-configuration
+name: Hermes Agent
+version: "1.0.0"
+slug: hermes
+description: >-
+  Self-improving AI agent with Home Assistant control and messaging gateways.
+url: https://github.com/nishantapatil3/hassio-addons/tree/main/hermes
+arch:
+  - aarch64
+  - amd64
+init: false
+backup: cold
+homeassistant_api: true
+ports:
+  8642/tcp: null
+  9119/tcp: null
+ports_description:
+  8642/tcp: Hermes OpenAI-compatible API
+  9119/tcp: Hermes web dashboard
+webui: http://[HOST]:[PORT:9119]
+map:
+  - type: addon_config
+    read_only: false
+    path: /opt/data
+options:
+  openrouter_api_key: ""
+  anthropic_api_key: ""
+  openai_api_key: ""
+  openai_base_url: ""
+  google_api_key: ""
+  nous_api_key: ""
+  github_token: ""
+  hass_token: ""
+  hass_url: http://supervisor/core
+  telegram_bot_token: ""
+  telegram_allowed_users: ""
+  discord_bot_token: ""
+  discord_allowed_users: ""
+  gateway_allow_all_users: false
+  api_server_enabled: false
+  api_server_key: ""
+  api_server_cors_origins: ""
+  dashboard_enabled: false
+  dashboard_username: ""
+  dashboard_password: ""
+  dashboard_secret: ""
+schema:
+  openrouter_api_key: password
+  anthropic_api_key: password
+  openai_api_key: password
+  openai_base_url: str
+  google_api_key: password
+  nous_api_key: password
+  github_token: password
+  hass_token: password
+  hass_url: str
+  telegram_bot_token: password
+  telegram_allowed_users: str
+  discord_bot_token: password
+  discord_allowed_users: str
+  gateway_allow_all_users: bool
+  api_server_enabled: bool
+  api_server_key: password
+  api_server_cors_origins: str
+  dashboard_enabled: bool
+  dashboard_username: str
+  dashboard_password: password
+  dashboard_secret: password
+image: ghcr.io/nishantapatil3/hermes-agent

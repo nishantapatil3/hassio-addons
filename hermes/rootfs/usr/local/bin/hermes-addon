@@ -1,0 +1,151 @@
+#!/usr/bin/env python3
+"""Configure Hermes from Home Assistant options and start its gateway."""
+
+from __future__ import annotations
+
+import json
+import os
+from pathlib import Path
+import sys
+from typing import Any
+
+
+OPTIONS_FILE = Path("/data/options.json")
+UPSTREAM_ENTRYPOINT = Path("/opt/hermes/docker/entrypoint-dispatch.sh")
+HERMES_HOME = "/opt/data"
+
+OPTION_ENVIRONMENT = {
+    "openrouter_api_key": "OPENROUTER_API_KEY",
+    "anthropic_api_key": "ANTHROPIC_API_KEY",
+    "openai_api_key": "OPENAI_API_KEY",
+    "openai_base_url": "OPENAI_BASE_URL",
+    "google_api_key": "GOOGLE_API_KEY",
+    "nous_api_key": "NOUS_API_KEY",
+    "github_token": "GITHUB_TOKEN",
+    "telegram_bot_token": "TELEGRAM_BOT_TOKEN",
+    "telegram_allowed_users": "TELEGRAM_ALLOWED_USERS",
+    "discord_bot_token": "DISCORD_BOT_TOKEN",
+    "discord_allowed_users": "DISCORD_ALLOWED_USERS",
+    "api_server_cors_origins": "API_SERVER_CORS_ORIGINS",
+}
+
+
+def load_options() -> dict[str, Any]:
+    """Read the Home Assistant app options file."""
+    if not OPTIONS_FILE.exists():
+        return {}
+
+    try:
+        options = json.loads(OPTIONS_FILE.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise ValueError(f"cannot read {OPTIONS_FILE}: {error}") from error
+
+    if not isinstance(options, dict):
+        raise ValueError(f"{OPTIONS_FILE} must contain a JSON object")
+    return options
+
+
+def option_string(options: dict[str, Any], name: str) -> str:
+    """Return a trimmed string option, treating null as empty."""
+    value = options.get(name, "")
+    return "" if value is None else str(value).strip()
+
+
+def option_bool(options: dict[str, Any], name: str, default: bool = False) -> bool:
+    """Parse Home Assistant booleans defensively for local/container tests."""
+    value = options.get(name, default)
+    if isinstance(value, bool):
+        return value
+    return str(value).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def set_option_environment(options: dict[str, Any]) -> None:
+    """Map common app options to Hermes' documented environment variables."""
+    for option_name, environment_name in OPTION_ENVIRONMENT.items():
+        value = option_string(options, option_name)
+        if value:
+            os.environ[environment_name] = value
+
+    hass_url = option_string(options, "hass_url") or "http://supervisor/core"
+    os.environ["HASS_URL"] = hass_url
+
+    # Home Assistant apps receive SUPERVISOR_TOKEN when homeassistant_api is
+    # enabled. Allow an explicit long-lived token to override that token.
+    hass_token = option_string(options, "hass_token")
+    if not hass_token:
+        hass_token = os.environ.get("HASS_TOKEN", "").strip()
+    if not hass_token:
+        hass_token = os.environ.get("SUPERVISOR_TOKEN", "").strip()
+    if hass_token:
+        os.environ["HASS_TOKEN"] = hass_token
+
+    os.environ.setdefault("HERMES_HOME", HERMES_HOME)
+    os.environ.setdefault("HERMES_WRITE_SAFE_ROOT", HERMES_HOME)
+    os.environ.setdefault("HERMES_GATEWAY_BOOTSTRAP_STATE", "running")
+
+    # Hermes' API server and dashboard bind to the container network only when
+    # explicitly enabled in the app configuration.
+    api_server_enabled = option_bool(options, "api_server_enabled")
+    os.environ["API_SERVER_ENABLED"] = "true" if api_server_enabled else "false"
+    if api_server_enabled:
+        api_server_key = option_string(options, "api_server_key")
+        if len(api_server_key) < 8:
+            raise ValueError(
+                "api_server_key must contain at least 8 characters when "
+                "api_server_enabled is true"
+            )
+        os.environ["API_SERVER_KEY"] = api_server_key
+        os.environ["API_SERVER_HOST"] = "0.0.0.0"
+        os.environ["API_SERVER_PORT"] = "8642"
+
+    dashboard_enabled = option_bool(options, "dashboard_enabled")
+    os.environ["HERMES_DASHBOARD"] = "1" if dashboard_enabled else "0"
+    if dashboard_enabled:
+        dashboard_username = option_string(options, "dashboard_username")
+        dashboard_password = option_string(options, "dashboard_password")
+        if not dashboard_username or not dashboard_password:
+            raise ValueError(
+                "dashboard_username and dashboard_password are required when "
+                "dashboard_enabled is true"
+            )
+        os.environ["HERMES_DASHBOARD_HOST"] = "0.0.0.0"
+        os.environ["HERMES_DASHBOARD_PORT"] = "9119"
+        os.environ["HERMES_DASHBOARD_BASIC_AUTH_USERNAME"] = dashboard_username
+        os.environ["HERMES_DASHBOARD_BASIC_AUTH_PASSWORD"] = dashboard_password
+
+        dashboard_secret = option_string(options, "dashboard_secret")
+        if dashboard_secret:
+            os.environ["HERMES_DASHBOARD_BASIC_AUTH_SECRET"] = dashboard_secret
+
+    os.environ["GATEWAY_ALLOW_ALL_USERS"] = (
+        "true" if option_bool(options, "gateway_allow_all_users") else "false"
+    )
+
+
+def main() -> int:
+    """Configure the app and hand off to the official Hermes entrypoint."""
+    try:
+        set_option_environment(load_options())
+    except ValueError as error:
+        print(f"[hermes-addon] ERROR: {error}", file=sys.stderr, flush=True)
+        return 1
+
+    if not UPSTREAM_ENTRYPOINT.is_file():
+        print(
+            f"[hermes-addon] ERROR: upstream entrypoint is missing: "
+            f"{UPSTREAM_ENTRYPOINT}",
+            file=sys.stderr,
+            flush=True,
+        )
+        return 1
+
+    print("Starting Hermes Agent gateway...", flush=True)
+    os.execv(
+        str(UPSTREAM_ENTRYPOINT),
+        [str(UPSTREAM_ENTRYPOINT), "gateway", "run"],
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
