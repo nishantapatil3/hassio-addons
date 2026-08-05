@@ -1,5 +1,5 @@
 name: PostgreSQL 18
-version: "1.0.0"
+version: "1.0.1"
 slug: postgres
 description: >-
   PostgreSQL 18 database for Home Assistant add-ons and automations.
@@ -16,6 +16,7 @@ ports_description:
 options:
   POSTGRES_PASSWORD: "homeassistant"
   POSTGRES_USER: "postgres"
+  POSTGRES_DB: "litellm"
 schema:
   POSTGRES_PASSWORD: password
   POSTGRES_USER: str

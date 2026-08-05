@@ -1,0 +1,25 @@
+configuration:
+  scrape_interval:
+    name: Scrape interval
+    description: How often Prometheus scrapes targets. Default is 15 seconds.
+  evaluation_interval:
+    name: Evaluation interval
+    description: How often recording and alerting rules are evaluated.
+  retention_time:
+    name: Data retention
+    description: How long Prometheus keeps time-series data. Default is 15 days.
+  scrape_litellm:
+    name: Scrape LiteLLM
+    description: Scrape metrics from the bundled LiteLLM add-on.
+  litellm_target:
+    name: LiteLLM target
+    description: Host and port of the LiteLLM metrics endpoint.
+  scrape_homeassistant:
+    name: Scrape Home Assistant
+    description: Scrape metrics from Home Assistant's Prometheus integration.
+  homeassistant_target:
+    name: Home Assistant target
+    description: Host and port of the Home Assistant Prometheus endpoint.
+  homeassistant_token:
+    name: Home Assistant token
+    description: Optional long-lived access token for the Home Assistant metrics endpoint.

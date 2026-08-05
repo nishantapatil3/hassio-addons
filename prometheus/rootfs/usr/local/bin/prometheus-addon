@@ -1,0 +1,126 @@
+#!/bin/sh
+# Generate a Prometheus configuration from Home Assistant add-on options.
+
+set -eu
+
+OPTIONS_FILE="/data/options.json"
+CONFIG_FILE="/data/prometheus.yml"
+DATA_DIR="/data"
+
+SCRAPE_INTERVAL="15s"
+EVALUATION_INTERVAL="15s"
+RETENTION_TIME="15d"
+SCRAPE_LITELLM="true"
+LITELLM_TARGET="db21ed7f-litellm:4000"
+SCRAPE_HOMEASSISTANT="false"
+HOMEASSISTANT_TARGET="homeassistant.local:8123"
+HOMEASSISTANT_TOKEN=""
+
+if [ -f "$OPTIONS_FILE" ]; then
+    SCRAPE_INTERVAL=$(jq -r '.scrape_interval // "15s"' "$OPTIONS_FILE")
+    EVALUATION_INTERVAL=$(jq -r '.evaluation_interval // "15s"' "$OPTIONS_FILE")
+    RETENTION_TIME=$(jq -r '.retention_time // "15d"' "$OPTIONS_FILE")
+    SCRAPE_LITELLM=$(jq -r '.scrape_litellm // true' "$OPTIONS_FILE")
+    LITELLM_TARGET=$(jq -r '.litellm_target // "db21ed7f-litellm:4000"' "$OPTIONS_FILE")
+    SCRAPE_HOMEASSISTANT=$(jq -r '.scrape_homeassistant // false' "$OPTIONS_FILE")
+    HOMEASSISTANT_TARGET=$(jq -r '.homeassistant_target // "homeassistant.local:8123"' "$OPTIONS_FILE")
+    HOMEASSISTANT_TOKEN=$(jq -r '.homeassistant_token // ""' "$OPTIONS_FILE")
+fi
+
+validate_duration() {
+    case "$1" in
+        ""|*[!0-9a-z]*)
+            echo "Invalid Prometheus duration: $1" >&2
+            exit 1
+            ;;
+    esac
+}
+
+validate_duration "$SCRAPE_INTERVAL"
+validate_duration "$EVALUATION_INTERVAL"
+validate_duration "$RETENTION_TIME"
+
+case "$SCRAPE_HOMEASSISTANT" in
+    true|false) ;;
+    *)
+        echo "scrape_homeassistant must be true or false" >&2
+        exit 1
+        ;;
+esac
+
+case "$SCRAPE_LITELLM" in
+    true|false) ;;
+    *)
+        echo "scrape_litellm must be true or false" >&2
+        exit 1
+        ;;
+esac
+
+# JSON string encoding is also valid YAML and prevents option values from
+# changing the generated configuration structure.
+json_string() {
+    jq -Rrn --arg value "$1" '$value | @json'
+}
+
+SCRAPE_INTERVAL_JSON=$(json_string "$SCRAPE_INTERVAL")
+EVALUATION_INTERVAL_JSON=$(json_string "$EVALUATION_INTERVAL")
+
+umask 077
+cat > "$CONFIG_FILE" <<EOF
+global:
+  scrape_interval: $SCRAPE_INTERVAL_JSON
+  evaluation_interval: $EVALUATION_INTERVAL_JSON
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["127.0.0.1:9090"]
+EOF
+
+if [ "$SCRAPE_HOMEASSISTANT" = "true" ]; then
+    if [ -z "$HOMEASSISTANT_TARGET" ]; then
+        echo "homeassistant_target cannot be empty when scraping Home Assistant" >&2
+        exit 1
+    fi
+
+    HOMEASSISTANT_TARGET_JSON=$(json_string "$HOMEASSISTANT_TARGET")
+    {
+        printf '%s\n' "  - job_name: homeassistant"
+        printf '%s\n' "    metrics_path: /api/prometheus"
+        printf '%s\n' "    static_configs:"
+        printf '%s\n' "      - targets: [$HOMEASSISTANT_TARGET_JSON]"
+    } >> "$CONFIG_FILE"
+
+    if [ -n "$HOMEASSISTANT_TOKEN" ]; then
+        HOMEASSISTANT_TOKEN_JSON=$(json_string "$HOMEASSISTANT_TOKEN")
+        {
+            printf '%s\n' "    authorization:"
+            printf '%s\n' "      type: Bearer"
+            printf '%s\n' "      credentials: $HOMEASSISTANT_TOKEN_JSON"
+        } >> "$CONFIG_FILE"
+    fi
+fi
+
+if [ "$SCRAPE_LITELLM" = "true" ]; then
+    if [ -z "$LITELLM_TARGET" ]; then
+        echo "litellm_target cannot be empty when scraping LiteLLM" >&2
+        exit 1
+    fi
+
+    LITELLM_TARGET_JSON=$(json_string "$LITELLM_TARGET")
+    {
+        printf '%s\n' "  - job_name: litellm"
+        printf '%s\n' "    metrics_path: /metrics/"
+        printf '%s\n' "    static_configs:"
+        printf '%s\n' "      - targets: [$LITELLM_TARGET_JSON]"
+    } >> "$CONFIG_FILE"
+fi
+
+chmod 0600 "$CONFIG_FILE"
+echo "Starting Prometheus (retention=${RETENTION_TIME}, litellm=${SCRAPE_LITELLM}, homeassistant=${SCRAPE_HOMEASSISTANT})..."
+
+exec prometheus \
+    --config.file="$CONFIG_FILE" \
+    --storage.tsdb.path="$DATA_DIR" \
+    --storage.tsdb.retention.time="$RETENTION_TIME" \
+    --web.listen-address=0.0.0.0:9090

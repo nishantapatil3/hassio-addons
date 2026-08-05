@@ -14,3 +14,7 @@ https://github.com/nishantapatil3/hassio-addons
 
 - [LiteLLM](litellm/) — an OpenAI-compatible AI gateway configured for
   OpenRouter, NVIDIA NIM, Claude Code, and Claude Desktop.
+- [PostgreSQL](postgres/) — PostgreSQL 18 database service.
+- [Redis](redis/) — Redis in-memory data store.
+- [Prometheus](prometheus/) — monitoring and time-series storage for Home Assistant.
+- [SearXNG](searxng/) — a privacy-respecting metasearch engine.

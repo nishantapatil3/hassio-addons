@@ -3,49 +3,63 @@
 ## Setup
 
 1. Install and start the add-on.
-2. On first start the add-on writes a default `litellm.yaml` to the config folder
+2. Install and start the PostgreSQL, Redis, and Prometheus add-ons from this repository.
+   The defaults use the internal Home Assistant hostnames for these add-ons.
+3. On first start the add-on writes a default `litellm.yaml` to the config folder
    and stops with instructions.
-3. Edit `/addon_configs/a1fb5371_litellm/litellm.yaml` — at minimum set:
-   - `general_settings.master_key` — a strong key starting with `sk-` (clients use this to authenticate).
-   - `api_key` on each model entry — your [OpenRouter API key](https://openrouter.ai/keys).
-4. Restart the add-on.
+4. In the add-on Configuration page, set:
+   - `master_key` — a strong key starting with `sk-` (clients use this to authenticate).
+   - `openrouter_api_key` — your [OpenRouter API key](https://openrouter.ai/keys).
+   - `database_url` — the PostgreSQL connection URL, defaulting to the bundled database.
+   - `redis_url` — the Redis connection URL, defaulting to the bundled cache.
+5. Restart the add-on.
 
 For Claude Code, set `ANTHROPIC_BASE_URL` to `http://HOME_ASSISTANT_IP:4000`
 and `ANTHROPIC_API_KEY` to your configured `master_key`.
 
 ## Configuration
 
-All configuration lives in a single file:
+Most connection settings are available in the add-on Configuration page. Advanced
+LiteLLM settings live in:
 
 ```
 /addon_configs/a1fb5371_litellm/litellm.yaml
 ```
 
-Edit this file directly and restart the add-on to apply changes. It is a
-standard [LiteLLM proxy configuration](https://docs.litellm.ai/docs/proxy/configs).
+Edit this file directly and restart the add-on to apply advanced changes. It is
+a standard [LiteLLM proxy configuration](https://docs.litellm.ai/docs/proxy/configs).
 
-The default file includes commented-out sections for PostgreSQL, Redis, SearXNG,
-and NVIDIA NIM — uncomment and fill in the values to enable them.
+The default file enables Redis response caching and Prometheus metrics. The
+SearXNG and NVIDIA NIM sections remain optional advanced configuration.
 
-## PostgreSQL (optional)
+## PostgreSQL (bundled default)
 
-Required for the admin UI, virtual keys, and spend tracking.
+PostgreSQL is used for the admin UI, virtual keys, and spend tracking.
 
-1. Install the **[PostgreSQL](https://github.com/hassio-addons/addon-postgres)**
-   community add-on and start it.
-2. Create a database for LiteLLM:
-   ```sql
-   CREATE USER litellm WITH PASSWORD 'choose-a-password';
-   CREATE DATABASE litellm OWNER litellm;
-   ```
-3. In `litellm.yaml` uncomment and fill in `general_settings.database_url`:
-   ```yaml
-   database_url: postgresql://litellm:choose-a-password@core-mariadb:5432/litellm
-   store_model_in_db: true
-   ```
+The PostgreSQL add-on in this repository creates the `litellm` database on its
+first start. Its default connection URL is:
 
-LiteLLM starts without a database, but the admin UI login and key management
-will not work.
+```text
+postgresql://postgres:homeassistant@db21ed7f-postgres:5432/litellm
+```
+
+Changing PostgreSQL options after initialization does not change an existing
+database; update `database_url` if you use different credentials or a different host.
+
+## Redis (bundled default)
+
+Redis response caching is enabled by default with:
+
+```text
+redis://db21ed7f-redis:6379/0
+```
+
+If Redis authentication is enabled, update `redis_url` to include the password.
+
+## Prometheus (bundled default)
+
+LiteLLM exposes metrics at `/metrics/`. The Prometheus add-on scrapes this
+endpoint by default at `db21ed7f-litellm:4000`.
 
 ## Endpoints
 

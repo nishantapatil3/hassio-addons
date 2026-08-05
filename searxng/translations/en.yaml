@@ -1,0 +1,7 @@
+configuration:
+  base_url:
+    name: Base URL
+    description: Public URL used by SearXNG when generating links.
+  image_proxy:
+    name: Image proxy
+    description: Proxy images through SearXNG instead of loading them directly.

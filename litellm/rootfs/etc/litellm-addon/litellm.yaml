@@ -62,13 +62,12 @@ litellm_settings:
   prometheus_initialize_budget_metrics: true
   prometheus_emit_stream_label: true
   require_auth_for_metrics_endpoint: false
-  # To enable Redis response caching, uncomment and fill in your Redis URL:
-  # cache: true
-  # cache_params:
-  #   type: redis
-  #   url: redis://:password@192.168.1.10:6379/0
-  #   namespace: litellm-cache
-  #   ttl: 600
+  cache: true
+  cache_params:
+    type: redis
+    url: os.environ/REDIS_URL
+    namespace: litellm-cache
+    ttl: 600
 
 router_settings:
   fallbacks:
@@ -87,7 +86,7 @@ router_settings:
 
 general_settings:
   master_key: os.environ/LITELLM_MASTER_KEY
-  database_url: postgresql://postgres:homeassistant@db21ed7f-postgres-latest:5432/litellm
+  database_url: os.environ/DATABASE_URL
   store_model_in_db: true
   store_prompts_in_spend_logs: true
   use_x_forwarded_for: true

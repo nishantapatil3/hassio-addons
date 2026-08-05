@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.20
+
+- Enable the bundled Redis cache and Prometheus scraping defaults.
+- Use the Home Assistant internal add-on hostnames for bundled dependencies.
+
+## 1.0.19
+
+- Add a `database_url` HA UI option with the existing PostgreSQL URL as its
+  default.
+
 ## 1.0.18
 
 - Migrate the legacy `sk-your-openrouter-api-key` model placeholder to the

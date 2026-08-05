@@ -5,12 +5,12 @@ OPTIONS_FILE="/data/options.json"
 
 POSTGRES_USER="postgres"
 POSTGRES_PASSWORD="homeassistant"
-POSTGRES_DB=""
+POSTGRES_DB="litellm"
 
 if [ -f "$OPTIONS_FILE" ]; then
     POSTGRES_USER=$(jq -r '.POSTGRES_USER // "postgres"' "$OPTIONS_FILE")
     POSTGRES_PASSWORD=$(jq -r '.POSTGRES_PASSWORD // "homeassistant"' "$OPTIONS_FILE")
-    POSTGRES_DB=$(jq -r '.POSTGRES_DB // ""' "$OPTIONS_FILE")
+    POSTGRES_DB=$(jq -r '.POSTGRES_DB // "litellm"' "$OPTIONS_FILE")
 fi
 
 export POSTGRES_USER
@@ -21,4 +21,32 @@ export POSTGRES_PASSWORD
 export PGDATA="/data/postgresql"
 
 echo "Starting PostgreSQL 18 (user=${POSTGRES_USER}, pgdata=${PGDATA})..."
-exec docker-entrypoint.sh postgres
+
+docker-entrypoint.sh postgres &
+POSTGRES_PID=$!
+
+cleanup() {
+    kill "$POSTGRES_PID" 2>/dev/null || true
+    wait "$POSTGRES_PID" 2>/dev/null || true
+}
+
+trap cleanup INT TERM
+
+until pg_isready -h 127.0.0.1 -p 5432 -U "$POSTGRES_USER" > /dev/null 2>&1; do
+    if ! kill -0 "$POSTGRES_PID" 2>/dev/null; then
+        wait "$POSTGRES_PID"
+    fi
+    sleep 1
+done
+
+if [ -n "$POSTGRES_DB" ]; then
+    echo "Ensuring PostgreSQL database exists: ${POSTGRES_DB}"
+    PGPASSWORD="$POSTGRES_PASSWORD" createdb \
+        -h 127.0.0.1 \
+        -p 5432 \
+        -U "$POSTGRES_USER" \
+        --if-not-exists \
+        "$POSTGRES_DB"
+fi
+
+wait "$POSTGRES_PID"

@@ -1,6 +1,6 @@
 # https://developers.home-assistant.io/docs/apps/configuration#app-configuration
 name: LiteLLM
-version: "1.0.18"
+version: "1.0.20"
 slug: litellm
 description: >-
   AI gateway for Claude Code and Claude Desktop using OpenRouter.
@@ -19,11 +19,15 @@ map:
   - type: addon_config
     read_only: false
 options:
-  master_key: ""
+  master_key: "sk-1234"
   openrouter_api_key: ""
+  database_url: "postgresql://postgres:homeassistant@db21ed7f-postgres:5432/litellm"
+  redis_url: "redis://db21ed7f-redis:6379/0"
   server_root_path: ""
 schema:
   master_key: str
   openrouter_api_key: str
+  database_url: str
+  redis_url: str
   server_root_path: str
 image: ghcr.io/nishantapatil3/litellm

@@ -1,0 +1,28 @@
+# https://developers.home-assistant.io/docs/apps/configuration#app-configuration
+name: SearXNG
+version: "1.0.0"
+slug: searxng
+description: >-
+  Privacy-respecting metasearch engine for Home Assistant.
+url: https://github.com/nishantapatil3/hassio-addons/tree/main/searxng
+arch:
+  - aarch64
+  - amd64
+init: false
+backup: cold
+ports:
+  8080/tcp: 8080
+ports_description:
+  8080/tcp: SearXNG web UI and search API
+webui: http://[HOST]:[PORT:8080]
+map:
+  - type: addon_config
+    read_only: false
+    path: /etc/searxng
+options:
+  base_url: http://homeassistant.local:8080/
+  image_proxy: true
+schema:
+  base_url: str
+  image_proxy: bool
+image: ghcr.io/nishantapatil3/searxng

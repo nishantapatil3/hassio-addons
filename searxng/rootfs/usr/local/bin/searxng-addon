@@ -1,0 +1,43 @@
+#!/usr/bin/env python3
+"""Apply Home Assistant options before starting the official SearXNG image."""
+
+from __future__ import annotations
+
+import json
+import os
+from pathlib import Path
+
+
+OPTIONS_FILE = Path("/data/options.json")
+CACHE_DIR = Path("/data/searxng-cache")
+UPSTREAM_ENTRYPOINT = "/usr/local/searxng/entrypoint.sh"
+
+
+def load_options() -> dict:
+    """Read add-on options, allowing the image defaults during local startup."""
+    if not OPTIONS_FILE.exists():
+        return {}
+    return json.loads(OPTIONS_FILE.read_text(encoding="utf-8"))
+
+
+def configure_environment(options: dict) -> None:
+    """Translate add-on options to the upstream container's environment."""
+    base_url = str(options.get("base_url", "http://homeassistant.local:8080/")).strip()
+    if not base_url:
+        raise ValueError("base_url cannot be empty")
+
+    os.environ["SEARXNG_BASE_URL"] = base_url
+    os.environ["SEARXNG_IMAGE_PROXY"] = str(
+        bool(options.get("image_proxy", True))
+    ).lower()
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def main() -> None:
+    configure_environment(load_options())
+    print("Starting SearXNG...", flush=True)
+    os.execv(UPSTREAM_ENTRYPOINT, [UPSTREAM_ENTRYPOINT])
+
+
+if __name__ == "__main__":
+    main()
