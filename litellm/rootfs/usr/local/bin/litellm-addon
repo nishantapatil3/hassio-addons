@@ -17,30 +17,6 @@ SALT_KEY_PATH = DATA_DIR / "salt_key"
 GUARDRAIL_DIR = Path("/usr/local/lib/litellm-addon")
 BUNDLED_CONFIG = Path("/etc/litellm-addon/litellm.yaml")
 OPTIONS_FILE = Path("/data/options.json")
-OPENROUTER_API_KEY_ENV_REF = "os.environ/OPENROUTER_API_KEY"
-DATABASE_URL_ENV_REF = "os.environ/DATABASE_URL"
-REDIS_URL_ENV_REF = "os.environ/REDIS_URL"
-DEFAULT_DATABASE_URL = (
-    "postgresql://postgres:homeassistant@db21ed7f-postgres:5432/litellm"
-)
-LEGACY_DATABASE_URL = (
-    "postgresql://postgres:homeassistant@db21ed7f-postgres-latest:5432/litellm"
-)
-LEGACY_REDIS_BLOCK = """  # To enable Redis response caching, uncomment and fill in your Redis URL:
-  # cache: true
-  # cache_params:
-  #   type: redis
-  #   url: redis://:password@192.168.1.10:6379/0
-  #   namespace: litellm-cache
-  #   ttl: 600
-"""
-ACTIVE_REDIS_BLOCK = """  cache: true
-  cache_params:
-    type: redis
-    url: os.environ/REDIS_URL
-    namespace: litellm-cache
-    ttl: 600
-"""
 
 
 def get_salt_key() -> str:
@@ -72,8 +48,6 @@ def configure_environment() -> None:
     if openrouter_api_key:
         os.environ["OPENROUTER_API_KEY"] = openrouter_api_key
     database_url = options.get("database_url", "").strip()
-    if database_url == LEGACY_DATABASE_URL:
-        database_url = database_url.replace("-postgres-latest:", "-postgres:")
     if database_url:
         os.environ["DATABASE_URL"] = database_url
     redis_url = options.get("redis_url", "").strip()
@@ -82,60 +56,6 @@ def configure_environment() -> None:
     server_root_path = options.get("server_root_path", "").strip()
     if server_root_path:
         os.environ["SERVER_ROOT_PATH"] = server_root_path
-
-
-def migrate_legacy_config() -> int:
-    """Replace bundled inline defaults with values supplied by UI options."""
-    contents = CONFIG_FILE.read_text(encoding="utf-8")
-    legacy_openrouter_setting = "api_key: sk-your-openrouter-api-key"
-    openrouter_replacements = contents.count(legacy_openrouter_setting)
-    legacy_database_settings = (
-        f"database_url: {DEFAULT_DATABASE_URL}",
-        f"database_url: {LEGACY_DATABASE_URL}",
-    )
-    database_replacements = sum(
-        contents.count(setting) for setting in legacy_database_settings
-    )
-    redis_replacements = contents.count(LEGACY_REDIS_BLOCK)
-    if (
-        openrouter_replacements == 0
-        and database_replacements == 0
-        and redis_replacements == 0
-    ):
-        return 0
-
-    updated = contents.replace(
-        legacy_openrouter_setting,
-        f"api_key: {OPENROUTER_API_KEY_ENV_REF}",
-    )
-    for legacy_database_setting in legacy_database_settings:
-        updated = updated.replace(
-            legacy_database_setting,
-            f"database_url: {DATABASE_URL_ENV_REF}",
-        )
-    updated = updated.replace(LEGACY_REDIS_BLOCK, ACTIVE_REDIS_BLOCK)
-    temporary_file = CONFIG_FILE.with_suffix(".yaml.tmp")
-    temporary_file.write_text(updated, encoding="utf-8")
-    temporary_file.chmod(CONFIG_FILE.stat().st_mode & 0o777)
-    temporary_file.replace(CONFIG_FILE)
-    if openrouter_replacements:
-        print(
-            f"Migrated {openrouter_replacements} legacy OpenRouter API key "
-            f"placeholder(s) in {CONFIG_FILE}.",
-            flush=True,
-        )
-    if database_replacements:
-        print(
-            f"Migrated {database_replacements} bundled database URL "
-            f"setting(s) in {CONFIG_FILE}.",
-            flush=True,
-        )
-    if redis_replacements:
-        print(
-            f"Enabled the default Redis cache in {CONFIG_FILE}.",
-            flush=True,
-        )
-    return openrouter_replacements + database_replacements + redis_replacements
 
 
 def main() -> int:
@@ -152,7 +72,6 @@ def main() -> int:
         )
         return 1
 
-    migrate_legacy_config()
     configure_environment()
     python_path = os.environ.get("PYTHONPATH", "")
     os.environ["PYTHONPATH"] = f"{GUARDRAIL_DIR}:{python_path}".rstrip(":")

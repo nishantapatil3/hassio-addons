@@ -66,62 +66,6 @@ class LauncherTests(unittest.TestCase):
         self.assertEqual(config["schema"]["database_url"], "str")
         self.assertEqual(config["schema"]["redis_url"], "str")
 
-    def test_legacy_openrouter_placeholders_are_migrated(self):
-        with tempfile.TemporaryDirectory() as directory:
-            config_file = Path(directory) / "litellm.yaml"
-            config_file.write_text(
-                "model_list:\n"
-                "  - litellm_params:\n"
-                "      api_key: sk-your-openrouter-api-key\n"
-                "  - litellm_params:\n"
-                "      api_key: sk-user-custom-key\n",
-                encoding="utf-8",
-            )
-            self.launcher.CONFIG_FILE = config_file
-
-            self.assertEqual(self.launcher.migrate_legacy_config(), 1)
-            migrated = config_file.read_text(encoding="utf-8")
-            self.assertIn("api_key: os.environ/OPENROUTER_API_KEY", migrated)
-            self.assertIn("api_key: sk-user-custom-key", migrated)
-            self.assertEqual(self.launcher.migrate_legacy_config(), 0)
-
-    def test_bundled_database_url_is_migrated_to_ui_option(self):
-        with tempfile.TemporaryDirectory() as directory:
-            config_file = Path(directory) / "litellm.yaml"
-            config_file.write_text(
-                "general_settings:\n"
-                "  database_url: "
-                "postgresql://postgres:homeassistant@db21ed7f-postgres-latest:5432/litellm\n",
-                encoding="utf-8",
-            )
-            self.launcher.CONFIG_FILE = config_file
-
-            self.assertEqual(self.launcher.migrate_legacy_config(), 1)
-            self.assertIn(
-                "database_url: os.environ/DATABASE_URL",
-                config_file.read_text(encoding="utf-8"),
-            )
-
-    def test_legacy_redis_cache_is_enabled(self):
-        with tempfile.TemporaryDirectory() as directory:
-            config_file = Path(directory) / "litellm.yaml"
-            config_file.write_text(
-                "  # To enable Redis response caching, uncomment and fill in your Redis URL:\n"
-                "  # cache: true\n"
-                "  # cache_params:\n"
-                "  #   type: redis\n"
-                "  #   url: redis://:password@192.168.1.10:6379/0\n"
-                "  #   namespace: litellm-cache\n"
-                "  #   ttl: 600\n",
-                encoding="utf-8",
-            )
-            self.launcher.CONFIG_FILE = config_file
-
-            self.assertEqual(self.launcher.migrate_legacy_config(), 1)
-            migrated = config_file.read_text(encoding="utf-8")
-            self.assertIn("url: os.environ/REDIS_URL", migrated)
-            self.assertNotIn("192.168.1.10", migrated)
-
     def test_database_url_option_is_exported(self):
         original_options_file = self.launcher.OPTIONS_FILE
         original_data_dir = self.launcher.DATA_DIR
